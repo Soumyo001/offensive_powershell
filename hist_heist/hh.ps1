@@ -58,8 +58,8 @@ foreach ($Browser in $BrowserHistoryPaths.Keys) {
         $Reader.Close()
         $Connection.Close()
 
-	Write-Output "Browsing History from ${Browser}:"
-	$History | Format-Table -AutoSize
+	    Write-Output "Browsing History from ${Browser}:"
+	    $History | Format-Table -AutoSize
 
         # Save history to CSV
         $CsvPath = "$env:TEMP\$Browser-History.csv"
@@ -68,10 +68,10 @@ foreach ($Browser in $BrowserHistoryPaths.Keys) {
         # Output result
         Write-Output "History saved: $CsvPath"
 
-	Start-Sleep -seconds 5
         # Cleanup temp files
         Remove-Item -Path $TempDB -Force
-    }else{
+    }
+    else{
     	Write-Output "The ${Browser} history file has not been found."
     }
 }
