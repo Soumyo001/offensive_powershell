@@ -50,8 +50,14 @@ foreach ($Browser in $BrowserHistoryPaths.Keys) {
         $TempDB = "$env:TEMP\${Browser}_History.db"
         Copy-Item -Path $HistoryDB -Destination $TempDB -Force
 
-        # SQLite query to extract full browsing history
-        $Query = "SELECT url, title, datetime(last_visit_time/1000000-11644473600, 'unixepoch', 'localtime') AS last_visited FROM urls ORDER BY last_visit_time DESC"
+       # Define SQLite query
+        if ($Browser -eq "Firefox") {
+            # Firefox stores history in "moz_places" table
+            $Query = "SELECT url, title, datetime(visit_date/1000000, 'unixepoch', 'localtime') AS last_visited FROM moz_places INNER JOIN moz_historyvisits ON moz_places.id = moz_historyvisits.place_id ORDER BY visit_date DESC"
+        } else {
+            # Chromium-based browsers
+            $Query = "SELECT url, title, datetime(last_visit_time/1000000-11644473600, 'unixepoch', 'localtime') AS last_visited FROM urls ORDER BY last_visit_time DESC"
+        }
 
         # Connect to SQLite database
         $Connection = New-Object System.Data.SQLite.SQLiteConnection "Data Source=$TempDB;Version=3;"
@@ -76,8 +82,8 @@ foreach ($Browser in $BrowserHistoryPaths.Keys) {
         $Reader.Close()
         $Connection.Close()
 
-	    Write-Output "Browsing History from ${Browser}:"
-	    $History | Format-Table -AutoSize
+	    # Write-Output "Browsing History from ${Browser}:"
+	    # $History | Format-Table -AutoSize
 
         # Save history to CSV
         $CsvPath = "$env:TEMP\$Browser-History.csv"
