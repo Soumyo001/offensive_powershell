@@ -63,10 +63,13 @@ foreach ($Browser in $BrowserHistoryPaths.Keys) {
             # Define SQLite query
             if ($Browser -eq "Firefox") {
                 # Firefox stores history in "moz_places" table
-                $Query = "SELECT url, title, datetime(visit_date/1000000, 'unixepoch', 'localtime') AS last_visited FROM moz_places INNER JOIN moz_historyvisits ON moz_places.id = moz_historyvisits.place_id ORDER BY visit_date DESC"
+                # $Query = "SELECT url, title, datetime(visit_date/1000000, 'unixepoch', 'localtime') AS last_visited FROM moz_places INNER JOIN moz_historyvisits ON moz_places.id = moz_historyvisits.place_id ORDER BY visit_date DESC"
+                $Query =  "SELECT * FROM moz_places LEFT JOIN moz_historyvisits ON moz_places.id = moz_historyvisits.place_id ORDER BY moz_historyvisits.visit_date DESC"
+
             } else {
                 # Chromium-based browsers
-                $Query = "SELECT url, title, datetime(last_visit_time/1000000-11644473600, 'unixepoch', 'localtime') AS last_visited FROM urls ORDER BY last_visit_time DESC"
+                # $Query = "SELECT url, title, datetime(last_visit_time/1000000-11644473600, 'unixepoch', 'localtime') AS last_visited FROM urls ORDER BY last_visit_time DESC"
+                $Query = "SELECT * FROM urls LEFT JOIN visits ON urls.id = visits.id ORDER BY visits.visit_time DESC"
             }
 
             # Connect to SQLite database
@@ -81,11 +84,23 @@ foreach ($Browser in $BrowserHistoryPaths.Keys) {
             # Store history
             $History = @()
             while ($Reader.Read()) {
-                $History += [PSCustomObject]@{
-                    URL         = $Reader["url"]
-                    Title       = $Reader["title"]
-                    LastVisited = $Reader["last_visited"]
+                # Create an empty hash table to hold column data
+                $columnData = @{}
+            
+                # Iterate over all columns and dynamically add them to the hash table
+                for ($i = 0; $i -lt $Reader.FieldCount; $i++) {
+                    $columnName = $Reader.GetName($i)
+                    $columnValue = $Reader.GetValue($i)
+                    
+                    # Add each column to the hash table with the column name as the key
+                    $columnData[$columnName] = $columnValue
                 }
+            
+                # Add the browser information to the hash table and create the custom object
+                $columnData["Browser"] = $Browser
+            
+                # Add the hash table as a custom object
+                $History += New-Object PSObject -Property $columnData
             }
 
             # Close connection properly

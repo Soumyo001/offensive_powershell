@@ -1,1 +1,5 @@
 System.Data.SQLite.dll & SQLite.Interop.dll : https://system.data.sqlite.org/downloads/1.0.119.0/sqlite-netFx20-binary-x64-2005-1.0.119.0.zip
+
+
+
+now I want those .csv files to be sent to a cloud storage like dropbox or google drive or anything. As discord doesn't support more than 10MB files(correct me if I am wrong)
