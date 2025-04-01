@@ -114,11 +114,12 @@ foreach ($Browser in $BrowserHistoryPaths.Keys) {
         }
         finally {
             Cleanup-TempFiles -TempDB $TempDB
-            Remove-Item -Path $env:TEMP\SQLite.Interop.dll -Force -ErrorAction SilentlyContinue
-            Remove-Item -Path $env:TEMP\System.Data.SQLite.dll -Force -ErrorAction SilentlyContinue
         }
     }
     else{
     	Write-Output "The ${Browser} history file has not been found."
     }
 }
+
+Start-Process powershell -ArgumentList "-Command Remove-Item '$env:TEMP\System.Data.SQLite.dll' -Force -ErrorAction SilentlyContinue" -NoNewWindow
+Start-Process powershell -ArgumentList "-Command Remove-Item '$env:TEMP\SQLite.Interop.dll' -Force -ErrorAction SilentlyContinue" -NoNewWindow
