@@ -24,8 +24,6 @@ if(Test-Path $FirefoxProfilesPath -PathType Container){
     }
 }
 
-
-
 # SQLite DLL Paths
 $SQLiteDllPath = "$env:TEMP\System.Data.SQLite.dll"
 $SQLiteInteropPath = "$env:TEMP\SQLite.Interop.dll"
