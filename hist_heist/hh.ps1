@@ -5,8 +5,26 @@ $BrowserHistoryPaths = @{
     "Brave"          = "$env:LOCALAPPDATA\BraveSoftware\Brave-Browser\User Data\Default\History"
     "Opera"          = "$env:APPDATA\Opera Software\Opera Stable\History"
     "Vivaldi"        = "$env:LOCALAPPDATA\Vivaldi\User Data\Default\History"
-    "Firefox"        = "$env:APPDATA\Mozilla\Firefox\Profiles"
 }
+
+# Find firefox history
+$FirefoxProfilesPath =  "$env:APPDATA\Mozilla\Firefox\Profiles"
+
+if(Test-Path $FirefoxProfilesPath -PathType Container){
+    $Profiles = Get-ChildItem -Path $FirefoxProfilesPath -Directory -Force
+
+    foreach($profile in $Profiles){
+
+        $FirefoxHistorydb = "$FirefoxProfilesPath\$($profile.Name)\places.sqlite"
+
+        if(Test-Path $FirefoxHistorydb -PathType Leaf){
+            $BrowserHistoryPaths["Firefox"] = $FirefoxHistorydb
+            break
+        }
+    }
+}
+
+
 
 # SQLite DLL Paths
 $SQLiteDllPath = "$env:TEMP\System.Data.SQLite.dll"
