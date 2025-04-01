@@ -114,6 +114,8 @@ foreach ($Browser in $BrowserHistoryPaths.Keys) {
         }
         finally {
             Cleanup-TempFiles -TempDB $TempDB
+            Remove-Item -Path $env:TEMP\SQLite.Interop.dll -Force -ErrorAction SilentlyContinue
+            Remove-Item -Path $env:TEMP\System.Data.SQLite.dll -Force -ErrorAction SilentlyContinue
         }
     }
     else{
