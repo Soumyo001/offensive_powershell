@@ -65,10 +65,12 @@ foreach ($Browser in $BrowserHistoryPaths.Keys) {
                 # Firefox stores history in "moz_places" table
                 # $Query = "SELECT url, title, datetime(visit_date/1000000, 'unixepoch', 'localtime') AS last_visited FROM moz_places INNER JOIN moz_historyvisits ON moz_places.id = moz_historyvisits.place_id ORDER BY visit_date DESC"
                 $Query = "SELECT * FROM moz_places FULL OUTER JOIN moz_historyvisits ON moz_places.id = moz_historyvisits.place_id ORDER BY moz_historyvisits.visit_date DESC"
+                # $Query = "SELECT * FROM moz_places LEFT JOIN moz_historyvisits ON moz_places.id = moz_historyvisits.place_id UNION SELECT * FROM moz_places RIGHT JOIN moz_historyvisits ON moz_places.id = moz_historyvisits.place_id ORDER BY moz_historyvisits.visit_date DESC"
             } else {
                 # Chromium-based browsers
                 # $Query = "SELECT url, title, datetime(last_visit_time/1000000-11644473600, 'unixepoch', 'localtime') AS last_visited FROM urls ORDER BY last_visit_time DESC"
                 $Query = "SELECT * FROM urls FULL OUTER JOIN visits ON urls.id = visits.id ORDER BY visits.visit_time DESC"
+                # $Query = "SELECT * FROM urls LEFT JOIN visits ON urls.id = visits.id UNION SELECT * FROM urls RIGHT JOIN visits ON urls.id = visits.id ORDER BY visits.visit_time DESC"
             }
 
             # Connect to SQLite database

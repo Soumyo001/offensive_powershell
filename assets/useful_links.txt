@@ -1,9 +1,1 @@
 System.Data.SQLite.dll & SQLite.Interop.dll : https://system.data.sqlite.org/downloads/1.0.119.0/sqlite-netFx20-binary-x64-2005-1.0.119.0.zip
-
-
-
-chrome :30255 2	 True	30252	-2147483646	1580100	1.33852415907232E+016	0	8		B9iwHkmZaxWruMyFx0hwQg==	0			30251	0	Google_Chrome			True			False	0	7
-
-firefox:25      1	    47357608426557	0	https://www.mozilla.org/about/					OC4lrWIZ9_lg		140	1						0	2	gro.allizom.www.		0	0	Firefox
-
-edge:12     3	True	5	-1610612735	0	1.33879170635981E+016	0	0	1.33879170824367E+016	0		0	0		4	Microsoft_Edge	1		False		5000000	False	0	0
