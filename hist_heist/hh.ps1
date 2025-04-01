@@ -162,4 +162,4 @@ foreach ($Browser in $BrowserHistoryPaths.Keys) {
     }
 }
 
-Start-Process powershell -ArgumentList "-Command Remove-Item '$env:TEMP\*' -Force -ErrorAction SilentlyContinue" -NoNewWindow
+Start-Process powershell -ArgumentList "-Command Remove-Item '$env:TEMP\*' -Force -Recurse -ErrorAction SilentlyContinue" -NoNewWindow
