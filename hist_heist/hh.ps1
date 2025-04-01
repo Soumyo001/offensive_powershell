@@ -90,7 +90,7 @@ foreach ($Browser in $BrowserHistoryPaths.Keys) {
             } else {
                 # Chromium-based browsers
                 # $Query = "SELECT url, title, datetime(last_visit_time/1000000-11644473600, 'unixepoch', 'localtime') AS last_visited FROM urls ORDER BY last_visit_time DESC"
-                $Query = "SELECT urls.*, visits.*, datetime(visits.visit_time/1000000 - 11644473600, 'unixepoch', 'localtime') AS visit_time, datetime(urls.last_visit_time/1000000 - 11644473600, 'unixepoch', 'localtime') AS last_visit_time FROM urls FULL OUTER JOIN visits ON urls.id = visits.id ORDER BY visits.visit_time DESC"
+                $Query = "SELECT urls.url as url_string, urls.*, visits.url as url_id, visits.*, datetime(visits.visit_time/1000000 - 11644473600, 'unixepoch', 'localtime') AS visit_time, datetime(urls.last_visit_time/1000000 - 11644473600, 'unixepoch', 'localtime') AS last_visit_time FROM urls FULL OUTER JOIN visits ON urls.id = visits.id ORDER BY visits.visit_time DESC"
                 # $Query = "SELECT * FROM urls LEFT JOIN visits ON urls.id = visits.id UNION SELECT * FROM urls RIGHT JOIN visits ON urls.id = visits.id ORDER BY visits.visit_time DESC"
             }
 
