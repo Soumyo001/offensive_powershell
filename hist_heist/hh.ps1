@@ -90,9 +90,13 @@ foreach ($Browser in $BrowserHistoryPaths.Keys) {
                 }
             }
 
-            # Close connection
+            # Close connection properly
             $Reader.Close()
+            $Command.Dispose()
             $Connection.Close()
+            $Connection.Dispose()
+
+            Start-Sleep -Milliseconds 500
 
             # show output history
 	        # Write-Output "Browsing History from ${Browser}:"
