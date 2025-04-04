@@ -23,9 +23,14 @@ if (-not (Test-Path $BouncyCastlePath)) {
 }
 
 # Load SQLite Assembly
-Add-Type -Path $SQLiteDllPath -ErrorAction Stop
-Add-Type -Path $SystemSecurityDllPath -ErrorAction Stop
-Add-Type -Path $BouncyCastlePath -ErrorAction Stop
+try{
+    Add-Type -Path $SQLiteDllPath -ErrorAction Stop
+    Add-Type -Path $SystemSecurityDllPath -ErrorAction Stop
+    Add-Type -Path $BouncyCastlePath -ErrorAction Stop
+}catch{
+    Write-Error "Failed to Load DLL : $_"
+    exit 1
+}
 
 Add-Type -TypeDefinition @"
 using System;
