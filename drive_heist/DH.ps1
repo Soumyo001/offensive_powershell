@@ -11,6 +11,18 @@ if (-not (Test-Admin)) {
     exit
 }
 
+# fetch interface alias of the active network adapter
+# method 1 (might contain multiple aliases)
+# $interfaceAlias = (Get-NetAdapter | Where-Object { $_.Status -eq 'Up' }).Name
+
+# method 2 (more precise)
+$interfaceAlias = (Get-NetIPConfiguration | Where-Object {$_.IPv4DefaultGateway -ne $null -and $_.NetAdapter.Status -ne "Disconnected"}).IPv4Address.InterfaceAlias
+
+# or alternative for method 2
+# $interfaceAlias = (Get-NetIPConfiguration | Where-Object {$_.IPv4DefaultGateway -ne $null -and $_.NetAdapter.Status -ne "Disconnected"}).NetAdapter.Name
+
+Set-NetConnectionProfile -InterfaceAlias $interfaceAlias -NetworkCategory Private
+
 # Enable Network Discovery
 Write-Host "Enabling Network Discovery..."
 netsh advfirewall firewall set rule group="network discovery" new enable=yes

@@ -1,4 +1,5 @@
 # Define browser login database paths
+# Worked for AES-GCM v1.0
 $ChromePath = "$env:LOCALAPPDATA\Google\Chrome\User Data"
 $EdgePath = "$env:LOCALAPPDATA\Microsoft\Edge\User Data"
 
