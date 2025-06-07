@@ -31,16 +31,22 @@ netsh advfirewall firewall set rule group="network discovery" new enable=yes
 Write-Host "Enabling File and Print Sharing..."
 netsh firewall set service type=fileandprint mode=enable profile=all
 Set-NetFirewallRule -DisplayGroup "File and Printer Sharing" -Enabled True -Profile Any
+Set-NetFirewallRule -Name "FPS-SMB-In-TCP" -Enabled True
+
 
 # Set registry values for allowing anonymous access to the drive
 Write-Host "Modifying registry settings for anonymous access..."
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\Lsa" /v "restrictanonymous" /t REG_DWORD /d 0 /f
 Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Lsa" -Name everyoneincludesanonymous -Value 1 -Force
 Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\LanManServer\Parameters" -Name restrictnullsessacces -Value 0 -Force
 Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters" -Name "AllowInsecureGuestAuth" -Value 1 -Forcea
+reg add "HKLM\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters" /v "NullSessionShares" /t REG_MULTI_SZ /d "MyShare" /f
+reg add "HKLM\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters" /v "NullSessionPipes" /t REG_MULTI_SZ /d "srvsvc" /f
 
 # Ensure SMBv1 is enabled (if necessary, as it is deprecated)
 Write-Host "Enabling SMBv1..."
 Set-SmbServerConfiguration -EnableSMB1Protocol $true -Force
+Set-SmbServerConfiguration -EnableSMB2Protocol $true -Force
 Set-SmbServerConfiguration -EncryptData $false -Force
 Set-SmbServerConfiguration -RejectUnencryptedAccess $false -Force
 Set-SmbServerConfiguration -RequireSecuritySignature $false -Force
