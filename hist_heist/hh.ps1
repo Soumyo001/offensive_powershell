@@ -1,10 +1,29 @@
 # Define browser paths
 $BrowserHistoryPaths = @{
-    "Google_Chrome"  = "$env:LOCALAPPDATA\Google\Chrome\User Data\Default\History"
-    "Microsoft_Edge" = "$env:LOCALAPPDATA\Microsoft\Edge\User Data\Default\History"
     "Brave"          = "$env:LOCALAPPDATA\BraveSoftware\Brave-Browser\User Data\Default\History"
     "Opera"          = "$env:APPDATA\Opera Software\Opera Stable\History"
     "Vivaldi"        = "$env:LOCALAPPDATA\Vivaldi\User Data\Default\History"
+}
+
+# Find all profiles in chrome and msedge
+$ChromeDataPath = "$env:LOCALAPPDATA\Google\Chrome\User Data"
+$EdgeDataPath = "$env:LOCALAPPDATA\Microsoft\Edge\User Data"
+
+$chromeProfiles = Get-ChildItem -Path $ChromeDataPath -Directory -Force | Where-Object { $_.Name -match "Default|Profile \d+" }
+$edgeProfiles = Get-ChildItem -Path $EdgeDataPath -Directory -Force | Where-Object { $_.Name -match "Default|Profile \d+" }
+
+foreach ($chromeProfile in $chromeProfiles) {
+    $HistoryPath = Join-Path -Path $chromeProfile.FullName -ChildPath "History"
+    if (Test-Path $HistoryPath -PathType Leaf) {
+        $BrowserHistoryPaths["Google_Chrome_$($chromeProfile.Name)"] = $HistoryPath
+    }
+}
+
+foreach ($edgeProfile in $edgeProfiles) {
+    $HistoryPath = Join-Path -Path $edgeProfile.FullName -ChildPath "History"
+    if (Test-Path $HistoryPath -PathType Leaf) {
+        $BrowserHistoryPaths["Microsoft_Edge_$($edgeProfile.Name)"] = $HistoryPath
+    }
 }
 
 # Find firefox history
@@ -18,8 +37,7 @@ if(Test-Path $FirefoxProfilesPath -PathType Container){
         $FirefoxHistorydb = "$FirefoxProfilesPath\$($profile.Name)\places.sqlite"
 
         if(Test-Path $FirefoxHistorydb -PathType Leaf){
-            $BrowserHistoryPaths["Firefox"] = $FirefoxHistorydb
-            break
+            $BrowserHistoryPaths["Firefox_$($profile.Name)"] = $FirefoxHistorydb
         }
     }
 }

