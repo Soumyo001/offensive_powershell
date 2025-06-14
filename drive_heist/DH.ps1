@@ -39,13 +39,20 @@ Write-Host "Modifying registry settings for anonymous access..."
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\Lsa" /v "restrictanonymous" /t REG_DWORD /d 0 /f
 Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Lsa" -Name everyoneincludesanonymous -Value 1 -Force
 Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\LanManServer\Parameters" -Name restrictnullsessacces -Value 0 -Force
-Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters" -Name "AllowInsecureGuestAuth" -Value 1 -Forcea
+Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters" -Name "AllowInsecureGuestAuth" -Value 1 -Force
 reg add "HKLM\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters" /v "NullSessionShares" /t REG_MULTI_SZ /d "MyShare" /f
 reg add "HKLM\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters" /v "NullSessionPipes" /t REG_MULTI_SZ /d "srvsvc" /f
+Enable-WindowsOptionalFeature -Online -FeatureName SMB1Protocol -All -NoRestart
 
 # Ensure SMBv1 is enabled (if necessary, as it is deprecated)
 Write-Host "Enabling SMBv1..."
-Set-SmbServerConfiguration -EnableSMB1Protocol $true -Force
+try {
+    Set-SmbServerConfiguration -EnableSMB1Protocol $true -Force
+}
+catch {
+    Enable-WindowsOptionalFeature -Online -FeatureName SMB1Protocol -All -NoRestart
+    Set-SmbServerConfiguration -EnableSMB1Protocol $true -Force
+}
 Set-SmbServerConfiguration -EnableSMB2Protocol $true -Force
 Set-SmbServerConfiguration -EncryptData $false -Force
 Set-SmbServerConfiguration -RejectUnencryptedAccess $false -Force
