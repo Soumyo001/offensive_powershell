@@ -1,16 +1,18 @@
 # Define browser paths
 $BrowserHistoryPaths = @{
-    "Brave"          = "$env:LOCALAPPDATA\BraveSoftware\Brave-Browser\User Data\Default\History"
-    "Opera"          = "$env:APPDATA\Opera Software\Opera Stable\History"
-    "Vivaldi"        = "$env:LOCALAPPDATA\Vivaldi\User Data\Default\History"
+    "Opera" = "$env:APPDATA\Opera Software\Opera Stable\History"
 }
 
 # Find all profiles in chrome and msedge
 $ChromeDataPath = "$env:LOCALAPPDATA\Google\Chrome\User Data"
 $EdgeDataPath = "$env:LOCALAPPDATA\Microsoft\Edge\User Data"
+$BraveDataPath = "$env:LOCALAPPDATA\BraveSoftware\Brave-Browser\User Data"
+$VivaldiDataPath = "$env:LOCALAPPDATA\Vivaldi\User Data"
 
 $chromeProfiles = Get-ChildItem -Path $ChromeDataPath -Directory -Force | Where-Object { $_.Name -match "Default|Profile \d+" }
 $edgeProfiles = Get-ChildItem -Path $EdgeDataPath -Directory -Force | Where-Object { $_.Name -match "Default|Profile \d+" }
+$braveProfiles = Get-ChildItem -Path $BraveDataPath -Directory -Force | Where-Object { $_.Name -match "Default|Profile \d+" }
+$vivaldiProfiles = Get-ChildItem -Path $VivaldiDataPath -Directory -Force | Where-Object { $_.Name -match "Default|Profile \d+" }
 
 foreach ($chromeProfile in $chromeProfiles) {
     $HistoryPath = Join-Path -Path $chromeProfile.FullName -ChildPath "History"
@@ -26,18 +28,32 @@ foreach ($edgeProfile in $edgeProfiles) {
     }
 }
 
+foreach ($braveProfile in $braveProfiles){
+    $HistoryPath = Join-Path -Path $braveProfile.FullName -ChildPath "History"
+    if(Test-Path $HistoryPath -PathType Leaf){
+        $BrowserHistoryPaths["Brave_$($braveProfile.Name)"] = $HistoryPath
+    }
+}
+
+foreach ($vivaldiProfile in $vivaldiProfiles){
+    $HistoryPath = Join-Path -Path $vivaldiProfile.FullName -ChildPath "History"
+    if(Test-Path $HistoryPath -PathType Leaf){
+        $BrowserHistoryPaths["Vivaldi_$($vivaldiProfile.Name)"] = $HistoryPath
+    }
+}
+
 # Find firefox history
 $FirefoxProfilesPath =  "$env:APPDATA\Mozilla\Firefox\Profiles"
 
 if(Test-Path $FirefoxProfilesPath -PathType Container){
     $Profiles = Get-ChildItem -Path $FirefoxProfilesPath -Directory -Force
 
-    foreach($profile in $Profiles){
+    foreach($p in $Profiles){
 
-        $FirefoxHistorydb = "$FirefoxProfilesPath\$($profile.Name)\places.sqlite"
+        $FirefoxHistorydb = "$FirefoxProfilesPath\$($p.Name)\places.sqlite"
 
         if(Test-Path $FirefoxHistorydb -PathType Leaf){
-            $BrowserHistoryPaths["Firefox_$($profile.Name)"] = $FirefoxHistorydb
+            $BrowserHistoryPaths["Firefox_$($p.Name)"] = $FirefoxHistorydb
         }
     }
 }
