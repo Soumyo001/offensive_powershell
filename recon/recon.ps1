@@ -34,7 +34,6 @@ Get-NetAdapter | Where-Object {$_.Status -eq "Up"} | Select-Object Name, LinkSpe
 "==== DHCP Lease Info (if DHCP role is present) ====" | Out-File -Append $OutFile
 try { Get-DhcpServerv4Lease | Out-File -Append $OutFile } catch { "No local DHCP server or permissions issue" | Out-File -Append $OutFile }
 
-# --- System Users and Groups ---
 "==== User Profiles and Groups ====" | Out-File -Append $OutFile
 Get-WmiObject Win32_UserAccount | Where-Object {$_.LocalAccount -eq $true} | Out-File -Append $OutFile
 
@@ -44,35 +43,28 @@ Get-LocalGroupMember -Group "Administrators" | Out-File -Append $OutFile
 "==== Last Logon Times for Local Profiles ====" | Out-File -Append $OutFile
 Get-WmiObject Win32_NetworkLoginProfile | Select-Object Name, LastLogon | Out-File -Append $OutFile
 
-# --- Running Processes and Services ---
 "==== Running Processes ====" | Out-File -Append $OutFile
 Get-Process | Select-Object Name, Id, Path | Out-File -Append $OutFile
 
 "==== Services (status/startup type) ====" | Out-File -Append $OutFile
 Get-Service | Select-Object DisplayName, Status, StartType | Out-File -Append $OutFile
 
-# --- Startup Programs ---
 "==== Startup Programs ====" | Out-File -Append $OutFile
 Get-CimInstance Win32_StartupCommand | Select-Object Name, Command, User | Out-File -Append $OutFile
 
-# --- Scheduled Tasks ---
 "==== Scheduled Tasks ====" | Out-File -Append $OutFile
  Get-ScheduledTask | Select-Object Actions, Author, Date, Description, TaskName, TaskPath, Triggers, SecurityDescriptor, URI, state
 | Select-Object TaskName, State, Author | Out-File -Append $OutFile
 
-# --- Event Logs (System errors/warnings) ---
 "==== Recent System Errors/Warnings ====" | Out-File -Append $OutFile
 Get-EventLog -LogName System -EntryType Error, Warning -Newest 50 | Out-File -Append $OutFile
 
-# --- Windows Updates Status ---
 "==== Windows Updates Status ====" | Out-File -Append $OutFile
 Get-HotFix | Out-File -Append $OutFile
 
-# --- Battery Info (if laptop) ---
 "==== Battery Information (if present) ====" | Out-File -Append $OutFile
 Get-WmiObject Win32_Battery | Out-File -Append $OutFile
 
-# --- Audio Devices and Printers ---
 "==== Audio Devices ====" | Out-File -Append $OutFile
 Get-WmiObject Win32_SoundDevice | Out-File -Append $OutFile
 
@@ -170,13 +162,6 @@ $HtmlContent = @"
     Latitude: $lat<br>
     Longitude: $lon<br></p>
     <p><a href='$MapsUrl' target='_blank'>Open Google Maps</a></p>
-    <!-- Uncomment the following iframe only if you have a Google Maps Embed API key -->
-    <!--
-    <iframe width='600' height='450' style='border:0'
-        loading='lazy' allowfullscreen
-        src='https://www.google.com/maps/embed/v1/view?key=YOUR_API_KEY&center=$lat,$lon&zoom=12'>
-    </iframe>
-    -->
 </body>
 </html>
 "@
