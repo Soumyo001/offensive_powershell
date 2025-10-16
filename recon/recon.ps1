@@ -9,7 +9,7 @@ Get-WmiObject -Class Win32_PhysicalMemoryArray | Select-Object MemoryDevices | O
 
 "==== Disk Drives and SMART Status ====" | Out-File -Append $OutFile
 Get-WmiObject Win32_DiskDrive | Select-Object Model, InterfaceType, MediaType, Size, SerialNumber, Status | Out-File -Append $OutFile
-try { Get-Disk | Get-StorageReliabilityCounter | Out-File -Append $OutFile }catch {}
+try { Get-Disk | Get-StorageReliabilityCounter -ErrorAction SilentlyContinue | Out-File -Append $OutFile }catch {}
 
 "==== GPU Information ====" | Out-File -Append $OutFile
 Get-WmiObject Win32_VideoController | Select-Object Name, AdapterRAM, DriverVersion, VideoProcessor | Out-File -Append $OutFile
@@ -25,7 +25,7 @@ Get-NetAdapter | Select-Object Name, InterfaceDescription, Status, MacAddress, L
 Get-NetAdapter | Where-Object {$_.Status -eq "Up"} | Select-Object Name, LinkSpeed | Out-File -Append $OutFile
 
 "==== DHCP Lease Info (if DHCP role is present) ====" | Out-File -Append $OutFile
-try { Get-DhcpServerv4Lease | Out-File -Append $OutFile } catch { "No local DHCP server or permissions issue" | Out-File -Append $OutFile }
+try { Get-DhcpServerv4Lease | Out-File -Append $OutFile } catch { "No local DHCP server or permissions issue `n" | Out-File -Append $OutFile }
 
 "==== User Profiles and Groups ====" | Out-File -Append $OutFile
 Get-WmiObject Win32_UserAccount | Where-Object {$_.LocalAccount -eq $true} | Out-File -Append $OutFile
@@ -67,7 +67,6 @@ Get-CimInstance Win32_StartupCommand | Select-Object Name, Command, User | Out-F
 "==== Recent System Errors/Warnings ====" | Out-File -Append $OutFile
 Get-EventLog -LogName System -EntryType Error, Warning -Newest 50 |
     ForEach-Object { "[$($_.EntryType)] $($_.TimeGenerated) $($_.Source): $($_.Message)" } | Out-File -Append $OutFile
-
 
 "==== Windows Updates Status ====" | Out-File -Append $OutFile
 Get-HotFix | Out-File -Append $OutFile
