@@ -143,12 +143,11 @@ Get-WmiObject Win32_DiskDrive | Where-Object { $_.InterfaceType -eq 'USB' } | Fo
             $output += "FileSystem     : $($l.FileSystem)"
         }
     }
-    # Write output block
     $output | Out-File -Append $OutFile
     "" | Out-File -Append $OutFile
 }
 
-# Optionally display all USB registry keys for deep forensics
+# display all USB registry keys for deep forensics
 $usbRoot = "HKLM:\SYSTEM\CurrentControlSet\Enum\USB"
 if (Test-Path $usbRoot) {
     "==== Raw USB Registry Entries ====" | Out-File -Append $OutFile
