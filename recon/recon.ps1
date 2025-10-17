@@ -176,14 +176,12 @@ Get-ItemProperty HKLM:\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\Uni
 Select-Object DisplayName, DisplayVersion, Publisher, InstallDate |
 Out-File -Append $OutFilePC
 
-# get net information
 Get-NetAdapter | Select-Object Name, MacAddress | Out-File -Append $OutFile
 
 Get-NetIPAddress | Where-Object { $_.AddressFamily -eq "IPv4" -and $_.InterfaceAlias -notlike "*Virtual*" } | Select-Object IPAddress | Out-File -Append $OutFile
 
 Write-Output "Username: $env:USERNAME" | Out-File -Append $OutFile
 
-# get antivirus status
 $antiviruses = Get-CimInstance -Namespace root/SecurityCenter2 -ClassName AntivirusProduct
 if ($antiviruses) {
     $antiviruses | ForEach-Object {
