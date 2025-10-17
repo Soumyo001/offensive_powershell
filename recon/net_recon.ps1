@@ -1,4 +1,7 @@
-$NetReport = "$env:USERPROFILE\Documents\network_report_full.txt"
+param(
+    [string]$NetReport
+)
+Write-Output $NetReport
 
 function AppendSection($title) { "`n==== $title ====`n" | Out-File -Append $NetReport }
 

