@@ -53,11 +53,7 @@ try {
 } catch{
     "No Domain Controller found or not on a domain." | Out-File -Append $NetReport
 }
-try {
-    nltest /trusted_domains | Out-File -Append $NetReport
-} catch{
-    "Domain trusts not found (likely not a domain join)." | Out-File -Append $NetReport
-}
+try { nltest /trusted_domains | Out-File -Append $NetReport } catch{ "Domain trusts not found (likely not a domain join)." | Out-File -Append $NetReport }
 try {
     nltest /sc_query:$($cs.Domain) | Out-File -Append $NetReport
 } catch{
