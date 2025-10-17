@@ -41,7 +41,7 @@ Get-NetFirewallRule | Select DisplayName, Direction, Action, Enabled | Out-File 
 # LLMNR & NetBIOS over TCP/IP
 Append-Section "LLMNR/NetBIOS Name Resolution Settings"
 Get-DnsClient | Select InterfaceAlias, ConnectionSpecificSuffix, RegisterThisConnectionsAddress, UseMulticast | Out-File -Append $NetReport
-Get-WmiObject Win32_NetworkAdapterConfiguration | Select Description, TcpipNetbiosOptions | Out-File -Append $NetReport
+Get-WmiObject Win32_NetworkAdapterConfiguration | Select-Object Description, TcpipNetbiosOptions | Out-File -Append $NetReport
 
 # AD Domain, Trusts, DCs, Secure Channel
 Append-Section "Active Directory Domain & Trust Details"
@@ -106,7 +106,9 @@ Append-Section "NAT/Port-forwarding Configurations (if enabled)"
 try {
     Get-NetNat | Out-File -Append $NetReport
     Get-NetNatSession | Out-File -Append $NetReport
-} catch{}
+} catch{
+    "NAT services or class not available on this machine." | Out-File -Append $NetReport
+}
 
 # Saved Credentials
 Append-Section "Saved Credentials"
