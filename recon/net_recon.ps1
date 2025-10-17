@@ -31,16 +31,16 @@ try {
 
 Append-Section "RDP/3389 Firewall Rules"
 Get-NetFirewallRule | Where-Object { $_.DisplayName -like '*Remote Desktop*' -or $_.Direction -eq "Inbound" -and $_.LocalPort -eq 3389 } | 
-    Select DisplayName, Enabled, Direction, Action, Profile | Out-File -Append $NetReport
+    Select-Object DisplayName, Enabled, Direction, Action, Profile | Out-File -Append $NetReport
 
 # Active Firewall Profiles and Rules
 Append-Section "Active Firewall Profiles and Rules"
 Get-NetFirewallProfile | Out-File -Append $NetReport
-Get-NetFirewallRule | Select DisplayName, Direction, Action, Enabled | Out-File -Append $NetReport
+Get-NetFirewallRule | Select-Object DisplayName, Direction, Action, Enabled | Out-File -Append $NetReport
 
 # LLMNR & NetBIOS over TCP/IP
 Append-Section "LLMNR/NetBIOS Name Resolution Settings"
-Get-DnsClient | Select InterfaceAlias, ConnectionSpecificSuffix, RegisterThisConnectionsAddress, UseMulticast | Out-File -Append $NetReport
+Get-DnsClient | Select-Object InterfaceAlias, ConnectionSpecificSuffix, RegisterThisConnectionsAddress, UseMulticast | Out-File -Append $NetReport
 Get-WmiObject Win32_NetworkAdapterConfiguration | Select-Object Description, TcpipNetbiosOptions | Out-File -Append $NetReport
 
 # AD Domain, Trusts, DCs, Secure Channel
@@ -67,7 +67,7 @@ try {
 # WINS Servers
 Append-Section "WINS Servers"
 Get-WmiObject Win32_NetworkAdapterConfiguration | Where-Object {$_.WINSEnableProxy -eq $true -or $_.WINSPrimaryServer -or $_.WINSSecondaryServer} |
-    Select Description, WINSPrimaryServer, WINSSecondaryServer, WINSEnableLMHostsLookup | Out-File -Append $NetReport
+    Select-Object Description, WINSPrimaryServer, WINSSecondaryServer, WINSEnableLMHostsLookup | Out-File -Append $NetReport
 
 # WLAN Capabilities & Blacklists
 Append-Section "WLAN Capabilities & Blacklists"
@@ -79,7 +79,7 @@ try {
 # DHCP Lease History
 Append-Section "DHCP Lease Info"
 try {
-    Get-DhcpServerv4Lease | Select IPAddress, ClientId, HostName, AddressState, LeaseExpiryTime | Out-File -Append $NetReport
+    Get-DhcpServerv4Lease | Select-Object IPAddress, ClientId, HostName, AddressState, LeaseExpiryTime | Out-File -Append $NetReport
 } catch{
     "DHCP lease history not available (admin or DHCP role required)." | Out-File -Append $NetReport
 }
@@ -99,7 +99,7 @@ Get-NetIPConfiguration | ForEach-Object {
 # IP Helper API Info (Tunnels, IPv6)
 Append-Section "Tunnel/IPv6 Transition Interfaces"
 Get-NetIPInterface | Where-Object {$_.ConnectionState -eq "Connected" -and $_.InterfaceAlias -match "(ISATAP|Teredo|6to4|Tunnel)"} | 
-    Select InterfaceAlias, InterfaceIndex, AddressFamily, ConnectionState | Out-File -Append $NetReport
+    Select-Object InterfaceAlias, InterfaceIndex, AddressFamily, ConnectionState | Out-File -Append $NetReport
 
 # NAT/Port-Forwarding Rules
 Append-Section "NAT/Port-forwarding Configurations (if enabled)"
@@ -124,8 +124,13 @@ if (Get-Service -Name LxssManager -ErrorAction SilentlyContinue) {
 # Bluetooth PAN & Devices
 Append-Section "Bluetooth PAN & Devices"
 try {
-    Get-PnpDevice -Class Bluetooth | Select Status, Class, FriendlyName, InstanceId | Out-File -Append $NetReport
-} catch{}
+    $bt = Get-PnpDevice -Class Bluetooth | Select-Object Status, Class, FriendlyName, InstanceId
+    if ($bt) { $bt | Out-File -Append $NetReport }
+    else { "No Bluetooth devices found." | Out-File -Append $NetReport }
+} catch{
+    "Bluetooth enumeration not supported or no devices found." | Out-File -Append $NetReport
+}
+
 
 # Multicast Memberships (SSDP, mDNS, etc.)
 Append-Section "Multicast Memberships"
@@ -148,21 +153,21 @@ Append-Section "Network Performance/Adapter Events (last 50, dropped/disconnecte
 try {
     Get-WinEvent -LogName System -MaxEvents 100 |
         Where-Object { $_.Id -in 27,32,10400..10499 } |
-        Select TimeCreated, Id, Message |
+        Select-Object TimeCreated, Id, Message |
         Out-File -Append $NetReport
 } catch{}
 
 # Interface Details
 Append-Section "Network Interface Details"
-Get-NetAdapter | Select Name, InterfaceDescription, Status, MacAddress, LinkSpeed, PhysicalMediaType | Out-File -Append $NetReport
+Get-NetAdapter | Select-Object Name, InterfaceDescription, Status, MacAddress, LinkSpeed, PhysicalMediaType | Out-File -Append $NetReport
 
 # IP Address Configuration
 Append-Section "IP Address Configuration"
-Get-NetIPAddress | Select InterfaceAlias, AddressFamily, IPAddress, PrefixLength | Out-File -Append $NetReport
+Get-NetIPAddress | Select-Object InterfaceAlias, AddressFamily, IPAddress, PrefixLength | Out-File -Append $NetReport
 
 # Default Gateways
 Append-Section "Default Gateways"
-Get-NetRoute | Where-Object { $_.DestinationPrefix -eq '0.0.0.0/0' -or $_.DestinationPrefix -eq '::/0' } | Select InterfaceAlias, NextHop | Out-File -Append $NetReport
+Get-NetRoute | Where-Object { $_.DestinationPrefix -eq '0.0.0.0/0' -or $_.DestinationPrefix -eq '::/0' } | Select-Object InterfaceAlias, NextHop | Out-File -Append $NetReport
 
 # Public IP Address
 Append-Section "Public IP Address"
@@ -180,7 +185,7 @@ route print | Out-File -Append $NetReport
 
 # DNS Servers & Search Domains
 Append-Section "DNS Servers & Search Domains"
-Get-DnsClientServerAddress | Select InterfaceAlias, ServerAddresses | Out-File -Append $NetReport
+Get-DnsClientServerAddress | Select-Object InterfaceAlias, ServerAddresses | Out-File -Append $NetReport
 
 # DNS Cache
 Append-Section "DNS Cache"
@@ -188,50 +193,50 @@ Get-DnsClientCache | Out-File -Append $NetReport
 
 # Network Shares: mapped and open on this machine
 Append-Section "Network Shares (Mapped Drives)"
-Get-SmbMapping | Select LocalPath, RemotePath, Status | Out-File -Append $NetReport
+Get-SmbMapping | Select-Object LocalPath, RemotePath, Status | Out-File -Append $NetReport
 Append-Section "Open SMB Shares on Machine"
-Get-SmbShare | Select Name, Path, Description | Out-File -Append $NetReport
+Get-SmbShare | Select-Object Name, Path, Description | Out-File -Append $NetReport
 
 # Active Connections and Listening Services
 Append-Section "TCP/UDP Active Connections"
-Get-NetTCPConnection | Select LocalAddress, LocalPort, RemoteAddress, RemotePort, State, OwningProcess | Out-File -Append $NetReport
-Get-NetUDPEndpoint | Select LocalAddress, LocalPort, OwningProcess | Out-File -Append $NetReport
+Get-NetTCPConnection | Select-Object LocalAddress, LocalPort, RemoteAddress, RemotePort, State, OwningProcess | Out-File -Append $NetReport
+Get-NetUDPEndpoint | Select-Object LocalAddress, LocalPort, OwningProcess | Out-File -Append $NetReport
 
 Append-Section "Listening Ports and Bound Processes"
 netstat -abno | Out-File -Append $NetReport
 
 # System Proxy Settings
 Append-Section "System Proxy Settings"
-Get-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Internet Settings' | Select ProxyServer, ProxyEnable | Out-File -Append $NetReport
+Get-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Internet Settings' | Select-Object ProxyServer, ProxyEnable | Out-File -Append $NetReport
 
 # VPN Configurations
 Append-Section "VPN Configurations"
 try {
-    Get-VpnConnection | Select Name, ServerAddress, AllUserConnection, AuthenticationMethod, TunnelType | Out-File -Append $NetReport
+    Get-VpnConnection | Select-Object Name, ServerAddress, AllUserConnection, AuthenticationMethod, TunnelType | Out-File -Append $NetReport
 } catch{ "No VPN profiles found or insufficient rights." | Out-File -Append $NetReport }
 
 # Remote Access Tools (detection)
 Append-Section "Remote Access Tools (Detection)"
 "RDP Sessions:" | Out-File -Append $NetReport
 query user | Out-File -Append $NetReport
-(Get-Process | Where {$_.Name -match "teamviewer|anydesk|vnc|logmein"} | Select Name, Path, Id) | Out-File -Append $NetReport
+(Get-Process | Where {$_.Name -match "teamviewer|anydesk|vnc|logmein"} | Select-Object Name, Path, Id) | Out-File -Append $NetReport
 
 # Network Adapter Driver Info
 Append-Section "Network Adapter Driver Info"
 Get-WmiObject Win32_NetworkAdapter | Where-Object { $_.PhysicalAdapter } | 
-Select Name, AdapterType, Manufacturer, DriverVersion, MACAddress | Out-File -Append $NetReport
+Select-Object Name, AdapterType, Manufacturer, DriverVersion, MACAddress | Out-File -Append $NetReport
 
 # Network Event Logs: connections/authentications
 Append-Section "Network Event Logs (Last 50 Logon Events)"
 try {
     Get-WinEvent -LogName Security -MaxEvents 50 -FilterXPath "*[System[(EventID=4624) or (EventID=4634) or (EventID=4625)]]" | 
-    Select TimeCreated, Id, Message | Out-File -Append $NetReport
+    Select-Object TimeCreated, Id, Message | Out-File -Append $NetReport
 } catch{}
 
 # NetBIOS info, domain/workgroup, local shares
 Append-Section "NetBIOS & Workgroup Info"
 nbtstat -n | Out-File -Append $NetReport
-(Get-WmiObject Win32_ComputerSystem | Select Domain, Workgroup, PartOfDomain) | Out-File -Append $NetReport
+(Get-WmiObject Win32_ComputerSystem | Select-Object Domain, Workgroup, PartOfDomain) | Out-File -Append $NetReport
 Append-Section "Enumerated SMB Shares"
 net view \\$env:COMPUTERNAME | Out-File -Append $NetReport
 
