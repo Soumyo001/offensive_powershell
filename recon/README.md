@@ -27,9 +27,9 @@ This is a comprehensive **PowerShell script** that collects a broad array of sys
 ## Usage
 
 1. **Run PowerShell as Administrator** (required for full access).
-2. **Save script** as `info-collector.ps1` and execute:
+2. **Save script** as `recon.ps1` and execute:
     ```
-    .\info-collector.ps1
+    powershell -ep bypass .\recon.ps1
     ```
 3. **Files created** (in your Documents folder):
     - `personal_info.txt`: IP info, location, MACs, Wi-Fi, etc.
