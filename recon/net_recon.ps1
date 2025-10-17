@@ -1,7 +1,6 @@
 param(
     [string]$NetReport
 )
-Write-Output "NET REPORT PATH: $NetReport"
 
 function AppendSection($title) { "`n==== $title ====`n" | Out-File -Append $NetReport }
 
