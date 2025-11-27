@@ -11,7 +11,7 @@
 "$env:APPDATA\Local\CrashDumps\"
 "$env:APPDATA\Local\Temp\Low\"
 "$env:APPDATA\Local\Temporary Internet Files\Content.IE5\"
-"$env:TEMP"
+"$env:TEMP\"
 "$env:APPDATA\Microsoft\Windows\Recent\"
 "$env:APPDATA\Microsoft\Windows\Recent\AutomaticDestinations\"
 "$env:APPDATA\Microsoft\Windows\Recent\CustomDestinations\"
