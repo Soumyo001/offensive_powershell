@@ -22,7 +22,6 @@
 "$env:PUBLIC\Downloads\"
 "$env:APPDATA\Microsoft\Windows\PowerShell\PSReadLine\"
 "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Startup\"
-"$env:APPDATA\Microsoft\Windows\Recent\"
 "$env:APPDATA\Microsoft\Windows\Libraries\"
 "$env:APPDATA\Microsoft\Windows\Cookies\"
 "$env:APPDATA\Microsoft\Spelling\en-US\"

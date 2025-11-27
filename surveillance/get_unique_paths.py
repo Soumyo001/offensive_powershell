@@ -1,4 +1,4 @@
-import os, sys, platform
+import os, sys
 
 def unique_paths(input_file, output_file):
     
@@ -31,13 +31,11 @@ if __name__ == "__main__":
 
     paths = unique_paths(input, output)
 
-    if platform.system() == "Windows":
-        os.system(f"powershell remove-item -path {input} -force")
-        os.system(f"powershell move-item -path {output} -destination {input}")
-    elif platform.system() == "Linux":
-        os.system(f"rm -f {input}")
-        os.system(f"mv {output} {input}")
+    try:
+        os.remove(input)
+        os.replace(output, input)
+    except Exception as e:
+        print("File operation failed, but unqie paths were created:", str(e))
 
     print("Unique paths from list: ")
     for path in paths: print(path)
-    
