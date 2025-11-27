@@ -22,6 +22,70 @@ foreach ($ssid in $wifi_profiles) {
     "SSID: $ssid - Password: $pw" | Out-File -Append $NetReport
 }
 
+# Wireless Signal Quality (extra granularity)
+AppendSection "Wi-Fi Interface Quality"
+try {
+    netsh wlan show interfaces | findstr /I "SSID Signal State RadioType Channel" | Out-File -Append $NetReport
+} catch{}
+
+# Adapter Advanced Properties (VLANs, offloads, etc.)
+AppendSection "All Adapter Advanced Properties"
+Get-NetAdapterAdvancedProperty | Out-File -Append $NetReport
+
+# Open Network Sessions and Shared Files
+AppendSection "Open Network Sessions and Files"
+try {
+    net session | Out-File -Append $NetReport
+    net file | Out-File -Append $NetReport
+} catch{}
+
+# AD Logged-in Users (qwinsta)
+AppendSection "Logged-in AD Users (if any)"
+try {
+    qwinsta | Out-File -Append $NetReport
+} catch{}
+
+# Certificate Information (EAP, VPN, Computer/Personal stores)
+AppendSection "Local Machine Certificate Store (only metadata)"
+Get-ChildItem -Path Cert:\LocalMachine\My | Select-Object Subject, Issuer, NotAfter | Out-File -Append $NetReport
+AppendSection "User Certificate Store (only metadata)"
+Get-ChildItem -Path Cert:\CurrentUser\My | Select-Object Subject, Issuer, NotAfter | Out-File -Append $NetReport
+
+# Defender/Malware Network Exclusions
+AppendSection "Defender Network Exclusions"
+try {
+    Get-MpPreference | Select-Object -ExpandProperty ExclusionPath | Out-File -Append $NetReport
+} catch{}
+
+# ARP Table by Interface
+AppendSection "ARP Table (by Interface)"
+foreach ($if in (Get-NetAdapter | Where-Object {$_.Status -eq 'Up'})) {
+    "ARP Table for $($if.Name):" | Out-File -Append $NetReport
+    arp -a $if.Name | Out-File -Append $NetReport
+}
+
+# Additional Public IP providers (fallback)
+AppendSection "Public IP Address (fallback providers)"
+try { (Invoke-WebRequest -Uri "https://ifconfig.me/ip" -UseBasicParsing).Content | Out-File -Append $NetReport } catch{}
+try { (Invoke-WebRequest -Uri "https://ipinfo.io/ip" -UseBasicParsing).Content | Out-File -Append $NetReport } catch{}
+
+# LSA Policy Export
+AppendSection "LSA Policy Info"
+try {
+    secedit /export /cfg "$env:TEMP\lsapolicy.inf" | Out-Null
+    Get-Content "$env:TEMP\lsapolicy.inf" | Out-File -Append $NetReport
+} catch{}
+
+# Detailed IPv6 Address Info
+AppendSection "IPv6 Address Details"
+Get-NetIPAddress -AddressFamily IPv6 | Out-File -Append $NetReport
+
+# Routing Protocols Running on System
+AppendSection "Routing Protocol Service Status"
+try {
+    Get-Service -Name RemoteAccess, Routing | Out-File -Append $NetReport
+} catch{}
+
 # NLA & RDP Settings
 AppendSection "RDP/NLA Settings"
 try {
@@ -31,9 +95,13 @@ try {
     "NLA Required: $([bool]$nla.UserAuthentication)" | Out-File -Append $NetReport
 } catch{}
 
+# RDP/3389 Firewall Rules (improved for port scan)
 AppendSection "RDP/3389 Firewall Rules"
-Get-NetFirewallRule | Where-Object { $_.DisplayName -like '*Remote Desktop*' -or $_.Direction -eq "Inbound" -and $_.LocalPort -eq 3389 } | 
-    Select-Object DisplayName, Enabled, Direction, Action, Profile | Out-File -Append $NetReport
+Get-NetFirewallRule | Where-Object {
+    ($_.DisplayName -like '*Remote Desktop*') -or
+    (Get-NetFirewallPortFilter -AssociatedNetFirewallRule $_ | Where-Object { $_.LocalPort -eq 3389 })
+} | 
+Select-Object DisplayName, Enabled, Direction, Action, Profile | Out-File -Append $NetReport
 
 # Active Firewall Profiles and Rules
 AppendSection "Active Firewall Profiles and Rules"
@@ -64,8 +132,7 @@ try {
 
 # WINS Servers
 AppendSection "WINS Servers"
-Get-WmiObject Win32_NetworkAdapterConfiguration | Where-Object {$_.WINSEnableProxy -eq $true -or $_.WINSPrimaryServer -or $_.WINSSecondaryServer} |
-    Select-Object Description, WINSPrimaryServer, WINSSecondaryServer, WINSEnableLMHostsLookup | Out-File -Append $NetReport
+Get-WmiObject Win32_NetworkAdapterConfiguration | Where-Object {$_.WINSEnableProxy -eq $true -or $_.WINSPrimaryServer -or $_.WINSSecondaryServer} | Select-Object Description, WINSPrimaryServer, WINSSecondaryServer, WINSEnableLMHostsLookup | Out-File -Append $NetReport
 
 # WLAN Capabilities & Blacklists
 AppendSection "WLAN Capabilities & Blacklists"
@@ -96,8 +163,7 @@ Get-NetIPConfiguration | ForEach-Object {
 
 # IP Helper API Info (Tunnels, IPv6)
 AppendSection "Tunnel/IPv6 Transition Interfaces"
-Get-NetIPInterface | Where-Object {$_.ConnectionState -eq "Connected" -and $_.InterfaceAlias -match "(ISATAP|Teredo|6to4|Tunnel)"} | 
-    Select-Object InterfaceAlias, InterfaceIndex, AddressFamily, ConnectionState | Out-File -Append $NetReport
+Get-NetIPInterface | Where-Object {$_.ConnectionState -eq "Connected" -and $_.InterfaceAlias -match "(ISATAP|Teredo|6to4|Tunnel)"} | Select-Object InterfaceAlias, InterfaceIndex, AddressFamily, ConnectionState | Out-File -Append $NetReport
 
 # NAT/Port-Forwarding Rules
 AppendSection "NAT/Port-forwarding Configurations (if enabled)"
@@ -173,8 +239,8 @@ try {
     (Invoke-RestMethod -Uri "https://api.ipify.org?format=text") | Out-File -Append $NetReport
 } catch{ "Could not fetch public IP." | Out-File -Append $NetReport }
 
-# ARP Table
-AppendSection "ARP Table"
+# ARP Table (summary)
+AppendSection "ARP Table (summary)"
 arp -a | Out-File -Append $NetReport
 
 # Routing Table
@@ -221,14 +287,12 @@ query user | Out-File -Append $NetReport
 
 # Network Adapter Driver Info
 AppendSection "Network Adapter Driver Info"
-Get-WmiObject Win32_NetworkAdapter | Where-Object { $_.PhysicalAdapter } | 
-Select-Object Name, AdapterType, Manufacturer, DriverVersion, MACAddress | Out-File -Append $NetReport
+Get-WmiObject Win32_NetworkAdapter | Where-Object { $_.PhysicalAdapter } | Select-Object Name, AdapterType, Manufacturer, DriverVersion, MACAddress | Out-File -Append $NetReport
 
 # Network Event Logs: connections/authentications
 AppendSection "Network Event Logs (Last 50 Logon Events)"
 try {
-    Get-WinEvent -LogName Security -MaxEvents 50 -FilterXPath "*[System[(EventID=4624) or (EventID=4634) or (EventID=4625)]]" | 
-    Select-Object TimeCreated, Id, Message | Out-File -Append $NetReport
+    Get-WinEvent -LogName Security -MaxEvents 50 -FilterXPath "*[System[(EventID=4624) or (EventID=4634) or (EventID=4625)]]" | Select-Object TimeCreated, Id, Message | Out-File -Append $NetReport
 } catch{}
 
 # NetBIOS info, domain/workgroup, local shares

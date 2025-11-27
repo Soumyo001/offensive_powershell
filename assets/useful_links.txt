@@ -1,6 +1,1 @@
 System.Data.SQLite.dll & SQLite.Interop.dll : https://system.data.sqlite.org/downloads/1.0.119.0/sqlite-netFx20-binary-x64-2005-1.0.119.0.zip
-
-
-ok another idea is,
-all the history.db files gets copied to temp directory, right?
-so is it possible to read that .db file throuh powershell and read the available tables it has and then create separate .csv files for each table with the browser name?
