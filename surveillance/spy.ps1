@@ -17,7 +17,8 @@ function Get-Paths {
             if(-not(Test-Path -Path "$t" -PathType Container)){
                 New-Item -Path "$t" -ItemType Directory -Force -ErrorAction SilentlyContinue
             }
-        } finally { $t } 
+            $t
+        } catch { } 
     } | ? { if($null -ne $_) { Test-Path -Path "$_" -PathType Container } }
 }
 
