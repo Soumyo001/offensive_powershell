@@ -33,7 +33,6 @@
 "$env:LOCALAPPDATA\Microsoft\Windows\WebCache\"
 "$env:LOCALAPPDATA\Microsoft\Windows\History\"
 "$env:LOCALAPPDATA\Microsoft\Windows\Caches\"
-"$env:LOCALAPPDATA\Microsoft\Windows\Caches\{*.}\Data\"
 "$env:LOCALAPPDATA\Microsoft\Windows\Explorer\"
 "$env:LOCALAPPDATA\Microsoft\Windows\PowerShell\"
 "$env:LOCALAPPDATA\Programs"
