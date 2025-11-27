@@ -26,6 +26,7 @@
 "$env:PUBLIC\Pictures\"
 "$env:PUBLIC\Downloads\"
 "$env:PUBLIC\Desktop\"
+"$env:TEMP"
 "$env:LOCALAPPDATA\Temp\"
 "$env:LOCALAPPDATA\Microsoft\Windows\INetCache\"
 "$env:LOCALAPPDATA\Microsoft\Windows\INetCache\Content.IE5\"
