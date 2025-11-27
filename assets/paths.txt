@@ -3,7 +3,6 @@
 "$env:WINDIR\System32\spool\drivers\color\"
 "$env:WINDIR\System32\Tasks\"
 "$env:WINDIR\System32\Com\dmp\"
-"$env:WINDIR\System32\FxsTmp\"
 "$env:PROGRAMDATA\USOShared\Logs\"
 "$env:PROGRAMDATA\Microsoft\Windows\WER\Temp\"
 "$env:PROGRAMDATA\Microsoft\Search\Data\Temp\"
