@@ -17,7 +17,7 @@ function Get-Config{
 }
 
 function Get-Paths {
-    params([string]$dropPaths)
+    param([string]$dropPaths)
     # $dropPaths = $raw -split "`n"
     # $dropPaths = $dropPaths.Trim()
     return $dropPaths | % { 
